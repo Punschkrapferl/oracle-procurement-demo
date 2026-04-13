@@ -15,6 +15,7 @@ import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrderStatu
 import com.example.oracleprocurementdemo.purchaseorder.repository.PurchaseOrderRepository;
 import com.example.oracleprocurementdemo.supplier.entity.Supplier;
 import com.example.oracleprocurementdemo.supplier.repository.SupplierRepository;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -30,13 +31,16 @@ public class PurchaseOrderService {
 
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final SupplierRepository supplierRepository;
+    private final EntityManager entityManager;
 
     public PurchaseOrderService(
             PurchaseOrderRepository purchaseOrderRepository,
-            SupplierRepository supplierRepository
+            SupplierRepository supplierRepository,
+            EntityManager entityManager
     ) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.supplierRepository = supplierRepository;
+        this.entityManager = entityManager;
     }
 
     @Transactional(readOnly = true)
@@ -74,9 +78,11 @@ public class PurchaseOrderService {
         purchaseOrder.setOrderDate(request.getOrderDate());
         purchaseOrder.setTotalAmount(BigDecimal.ZERO);
 
-        replaceLines(purchaseOrder, request.getLines());
+        addLines(purchaseOrder, request.getLines());
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+        entityManager.flush();
+
         return getPurchaseOrderById(savedPurchaseOrder.getId());
     }
 
@@ -105,6 +111,7 @@ public class PurchaseOrderService {
         purchaseOrder.setOrderDate(request.getOrderDate());
 
         replaceLines(purchaseOrder, request.getLines());
+        entityManager.flush();
 
         return toResponse(purchaseOrder);
     }
@@ -129,6 +136,8 @@ public class PurchaseOrderService {
         }
 
         purchaseOrder.setStatus(PurchaseOrderStatus.SUBMITTED);
+        entityManager.flush();
+
         return toResponse(purchaseOrder);
     }
 
@@ -140,6 +149,8 @@ public class PurchaseOrderService {
         }
 
         purchaseOrder.setStatus(PurchaseOrderStatus.APPROVED);
+        entityManager.flush();
+
         return toResponse(purchaseOrder);
     }
 
@@ -155,6 +166,8 @@ public class PurchaseOrderService {
         }
 
         purchaseOrder.setStatus(PurchaseOrderStatus.CANCELLED);
+        entityManager.flush();
+
         return toResponse(purchaseOrder);
     }
 
@@ -204,6 +217,13 @@ public class PurchaseOrderService {
             purchaseOrder.removeLine(existingLine);
         }
 
+        entityManager.flush();
+
+        addLines(purchaseOrder, lineRequests);
+        purchaseOrder.recalculateTotalAmount();
+    }
+
+    private void addLines(PurchaseOrder purchaseOrder, List<PurchaseOrderLineRequest> lineRequests) {
         for (PurchaseOrderLineRequest lineRequest : lineRequests) {
             PurchaseOrderLine line = new PurchaseOrderLine();
             line.setLineNumber(lineRequest.getLineNumber());
