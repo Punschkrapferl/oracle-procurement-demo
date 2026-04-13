@@ -6,10 +6,13 @@ import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderStatusSu
 import com.example.oracleprocurementdemo.purchaseorder.dto.UpdatePurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.service.PurchaseOrderService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,6 +49,37 @@ public class PurchaseOrderController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create a new purchase order")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    examples = @ExampleObject(
+                            name = "Create purchase order",
+                            value = """
+                                    {
+                                      "orderNumber": "PO-2026-1001",
+                                      "supplierId": 1,
+                                      "requestedBy": "Punschkrapferl",
+                                      "orderDate": "2026-04-13",
+                                      "lines": [
+                                        {
+                                          "lineNumber": 1,
+                                          "itemDescription": "Industrial safety gloves",
+                                          "quantity": 50,
+                                          "unitPrice": 4.90
+                                        },
+                                        {
+                                          "lineNumber": 2,
+                                          "itemDescription": "Protective safety goggles",
+                                          "quantity": 20,
+                                          "unitPrice": 12.50
+                                        }
+                                      ]
+                                    }
+                                    """
+                    )
+            )
+    )
     public PurchaseOrderResponse createPurchaseOrder(
             @Valid @RequestBody CreatePurchaseOrderRequest request
     ) {
@@ -54,6 +88,37 @@ public class PurchaseOrderController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a draft purchase order")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    examples = @ExampleObject(
+                            name = "Update draft purchase order",
+                            value = """
+                                    {
+                                      "orderNumber": "PO-2026-1001",
+                                      "supplierId": 1,
+                                      "requestedBy": "Punschkrapferl",
+                                      "orderDate": "2026-04-13",
+                                      "lines": [
+                                        {
+                                          "lineNumber": 1,
+                                          "itemDescription": "Industrial safety gloves",
+                                          "quantity": 60,
+                                          "unitPrice": 4.90
+                                        },
+                                        {
+                                          "lineNumber": 2,
+                                          "itemDescription": "Protective safety goggles",
+                                          "quantity": 25,
+                                          "unitPrice": 12.50
+                                        }
+                                      ]
+                                    }
+                                    """
+                    )
+            )
+    )
     public PurchaseOrderResponse updatePurchaseOrder(
             @PathVariable Long id,
             @Valid @RequestBody UpdatePurchaseOrderRequest request

@@ -5,10 +5,13 @@ import com.example.oracleprocurementdemo.supplier.dto.SupplierResponse;
 import com.example.oracleprocurementdemo.supplier.dto.UpdateSupplierRequest;
 import com.example.oracleprocurementdemo.supplier.service.SupplierService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,12 +48,46 @@ public class SupplierController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create a new supplier")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    examples = @ExampleObject(
+                            name = "Create supplier",
+                            value = """
+                                    {
+                                      "supplierCode": "SUP-1001",
+                                      "name": "Acme Industrial Supplies",
+                                      "contactEmail": "orders@acme-industrial.com",
+                                      "active": true
+                                    }
+                                    """
+                    )
+            )
+    )
     public SupplierResponse createSupplier(@Valid @RequestBody CreateSupplierRequest request) {
         return supplierService.createSupplier(request);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update an existing supplier")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    examples = @ExampleObject(
+                            name = "Update supplier",
+                            value = """
+                                    {
+                                      "supplierCode": "SUP-1001",
+                                      "name": "Acme Industrial Supplies Europe",
+                                      "contactEmail": "procurement@acme-industrial.com",
+                                      "active": true
+                                    }
+                                    """
+                    )
+            )
+    )
     public SupplierResponse updateSupplier(
             @PathVariable Long id,
             @Valid @RequestBody UpdateSupplierRequest request
