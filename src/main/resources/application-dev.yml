@@ -18,6 +18,16 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+springdoc:
+  packages-to-scan: com.example.oracleprocurementdemo
+  paths-to-match: /api/**
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+
 logging:
   level:
     org.hibernate.SQL: debug

@@ -4,6 +4,8 @@ import com.example.oracleprocurementdemo.supplier.dto.CreateSupplierRequest;
 import com.example.oracleprocurementdemo.supplier.dto.SupplierResponse;
 import com.example.oracleprocurementdemo.supplier.dto.UpdateSupplierRequest;
 import com.example.oracleprocurementdemo.supplier.service.SupplierService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/suppliers")
+@Tag(name = "Suppliers", description = "Supplier management endpoints")
 public class SupplierController {
 
     private final SupplierService supplierService;
@@ -28,22 +31,26 @@ public class SupplierController {
     }
 
     @GetMapping
+    @Operation(summary = "List all suppliers")
     public List<SupplierResponse> getAllSuppliers() {
         return supplierService.getAllSuppliers();
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get a supplier by id")
     public SupplierResponse getSupplierById(@PathVariable Long id) {
         return supplierService.getSupplierById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Create a new supplier")
     public SupplierResponse createSupplier(@Valid @RequestBody CreateSupplierRequest request) {
         return supplierService.createSupplier(request);
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Update an existing supplier")
     public SupplierResponse updateSupplier(
             @PathVariable Long id,
             @Valid @RequestBody UpdateSupplierRequest request
@@ -53,6 +60,7 @@ public class SupplierController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Delete a supplier")
     public void deleteSupplier(@PathVariable Long id) {
         supplierService.deleteSupplier(id);
     }

@@ -5,6 +5,8 @@ import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderResponse
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderStatusSummaryResponse;
 import com.example.oracleprocurementdemo.purchaseorder.dto.UpdatePurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.service.PurchaseOrderService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/purchase-orders")
+@Tag(name = "Purchase Orders", description = "Purchase order lifecycle endpoints")
 public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
@@ -29,17 +32,20 @@ public class PurchaseOrderController {
     }
 
     @GetMapping
+    @Operation(summary = "List all purchase orders")
     public List<PurchaseOrderResponse> getAllPurchaseOrders() {
         return purchaseOrderService.getAllPurchaseOrders();
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get a purchase order by id")
     public PurchaseOrderResponse getPurchaseOrderById(@PathVariable Long id) {
         return purchaseOrderService.getPurchaseOrderById(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Create a new purchase order")
     public PurchaseOrderResponse createPurchaseOrder(
             @Valid @RequestBody CreatePurchaseOrderRequest request
     ) {
@@ -47,6 +53,7 @@ public class PurchaseOrderController {
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Update a draft purchase order")
     public PurchaseOrderResponse updatePurchaseOrder(
             @PathVariable Long id,
             @Valid @RequestBody UpdatePurchaseOrderRequest request
@@ -56,26 +63,31 @@ public class PurchaseOrderController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Delete a draft purchase order")
     public void deletePurchaseOrder(@PathVariable Long id) {
         purchaseOrderService.deletePurchaseOrder(id);
     }
 
     @PostMapping("/{id}/submit")
+    @Operation(summary = "Submit a draft purchase order")
     public PurchaseOrderResponse submitPurchaseOrder(@PathVariable Long id) {
         return purchaseOrderService.submitPurchaseOrder(id);
     }
 
     @PostMapping("/{id}/approve")
+    @Operation(summary = "Approve a submitted purchase order")
     public PurchaseOrderResponse approvePurchaseOrder(@PathVariable Long id) {
         return purchaseOrderService.approvePurchaseOrder(id);
     }
 
     @PostMapping("/{id}/cancel")
+    @Operation(summary = "Cancel a purchase order")
     public PurchaseOrderResponse cancelPurchaseOrder(@PathVariable Long id) {
         return purchaseOrderService.cancelPurchaseOrder(id);
     }
 
     @GetMapping("/summary/status")
+    @Operation(summary = "Get purchase order counts grouped by status")
     public List<PurchaseOrderStatusSummaryResponse> getPurchaseOrderStatusSummary() {
         return purchaseOrderService.getPurchaseOrderStatusSummary();
     }
