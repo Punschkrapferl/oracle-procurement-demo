@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: oracle-procurement-demo
+  profiles:
+    default: dev
