@@ -70,46 +70,37 @@ Cancellation is also supported according to the business rules implemented in th
 
 ## Architecture overview
 
-## Architecture overview
-
-```mermaid
-flowchart TD
-    A["Reviewer<br/>Swagger UI<br/>curl / Postman"]
-    B["REST Controllers"]
-    C["Service Layer<br/>Business Rules"]
-    D["Spring Data JPA<br/>Repositories"]
-    E["Flyway<br/>Migrations"]
-    F[("Oracle Database")]
-
-    A --> B
-    B --> C
-    C --> D
-    D --> F
-    E --> F
-```
+![Architecture Diagram](docs/architecture_diagram.png)
 
 ---
 
 ## Package structure
 
-```mermaid
-com.example.oracleprocurementdemo
-├── common
-│   └── ...
-├── config
-│   └── ...
-├── purchaseorder
-│   ├── controller
-│   ├── dto
-│   ├── entity
-│   ├── repository
-│   └── service
-└── supplier
-    ├── controller
-    ├── dto
-    ├── entity
-    ├── repository
-    └── service
+```md 
+src
+├─ main
+│  ├─ java/com/example/oracleprocurementdemo
+│  │  ├─ common/exception
+│  │  ├─ config
+│  │  ├─ supplier
+│  │  │  ├─ controller
+│  │  │  ├─ dto
+│  │  │  ├─ entity
+│  │  │  ├─ repository
+│  │  │  └─ service
+│  │  └─ purchaseorder
+│  │     ├─ controller
+│  │     ├─ dto
+│  │     ├─ entity
+│  │     ├─ repository
+│  │     └─ service
+│  └─ resources
+│     ├─ db.migration
+│     ├─ application.yml
+│     └─ application-dev.yml
+└─ test
+   ├─ java/com/example/oracleprocurementdemo
+   └─ resources/application-test.yml
 ```
 
 ---
