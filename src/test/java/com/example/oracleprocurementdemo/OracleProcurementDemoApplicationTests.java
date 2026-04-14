@@ -92,7 +92,7 @@ class OracleProcurementDemoApplicationTests {
 						"/api/suppliers",
 						HttpMethod.GET,
 						null,
-						new ParameterizedTypeReference<List<SupplierResponse>>() {
+						new ParameterizedTypeReference<>() {
 						}
 				);
 
@@ -191,7 +191,7 @@ class OracleProcurementDemoApplicationTests {
 						"/api/purchase-orders/summary/status",
 						HttpMethod.GET,
 						null,
-						new ParameterizedTypeReference<List<PurchaseOrderStatusSummaryResponse>>() {
+						new ParameterizedTypeReference<>() {
 						}
 				);
 
