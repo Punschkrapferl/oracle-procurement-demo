@@ -1,8 +1,8 @@
 # Oracle Procurement Demo
 
-Small recruiter-friendly backend project built with **Java 21**, **Spring Boot 4**, **Oracle Database**, **Flyway**, **Swagger/OpenAPI**, and **Docker**.
+Small backend portfolio project built with **Java 21**, **Spring Boot 4**, **Oracle Database**, **Spring Data JPA**, **Flyway**, **Swagger/OpenAPI**, and **Docker Compose**.
 
-This project models a simple procurement workflow with **suppliers** and **purchase orders**. It focuses on the backend concerns that matter in reviews and interviews: **clean API design, validation, persistence, workflow rules, database migrations, testing, and low-friction local setup**.
+This project models a simple procurement workflow with **suppliers** and **purchase orders**. It focuses on backend concerns that are useful in a recruiter review: **clean API design, validation, workflow rules, persistence, database migrations, exception handling, testing, and reproducible local setup**.
 
 ---
 
@@ -13,10 +13,10 @@ This project models a simple procurement workflow with **suppliers** and **purch
 - Database migrations with Flyway
 - Validation and centralized exception handling
 - Simple procurement workflow rules
-- Swagger/OpenAPI documentation for easy API review
+- Swagger/OpenAPI documentation for fast API review
 - Automated tests across service, controller, and integration levels
 - Docker-based local setup for reproducible reviewing
-- Published Docker image for one-command review
+- Published Docker image for low-friction project review
 
 ---
 
@@ -33,8 +33,8 @@ The project intentionally stays small and practical.
   - submit
   - approve
   - cancel
-- Status summary endpoint
-- Validation and error responses
+- Purchase order status summary endpoint
+- Validation and structured error responses
 - Flyway-based schema management
 - Swagger/OpenAPI UI
 - Dockerized Oracle database
@@ -42,7 +42,7 @@ The project intentionally stays small and practical.
 
 ### Workflow idea
 
-A purchase order starts as a draft and can then move through a small approval flow.
+A purchase order starts as a draft and can move through a small approval flow.
 
 Example lifecycle:
 
@@ -76,7 +76,7 @@ Cancellation is also supported according to the business rules implemented in th
 
 ## Package structure
 
-```md 
+```text
 src
 ├─ main
 │  ├─ java/com/example/oracleprocurementdemo
@@ -95,19 +95,19 @@ src
 │  │     ├─ repository
 │  │     └─ service
 │  └─ resources
-│     ├─ db.migration
+│     ├─ db/migration
 │     ├─ application.yml
 │     └─ application-dev.yml
 └─ test
    ├─ java/com/example/oracleprocurementdemo
    └─ resources/application-test.yml
-```
+````
 
 ---
 
 ## Quick review path
 
-This is the fastest way to review the project.
+This is the main and recommended way to review the project.
 
 ### Prerequisites
 
@@ -115,26 +115,32 @@ This is the fastest way to review the project.
 * Port `8080` free for the application
 * Port `1521` free for Oracle
 
-### Start everything
+### 1. Create a local environment file
+
+```bash
+cp .env.example .env
+```
+
+### 2. Start the full stack
 
 ```bash
 docker compose up -d --wait --wait-timeout 600
 ```
 
-### Open
+### 3. Open the API docs
 
 * Swagger UI: `http://localhost:8080/swagger-ui.html`
 * OpenAPI docs: `http://localhost:8080/v3/api-docs`
 
-### Stop everything
+### 4. Stop the stack
 
 ```bash
 docker compose down
 ```
 
-### Full reset
+### 5. Full reset
 
-If you want to start with a completely fresh Oracle database:
+If you want a completely fresh Oracle database:
 
 ```bash
 docker compose down -v
@@ -145,62 +151,106 @@ This removes the Oracle volume and recreates the schema from scratch through Fly
 
 ---
 
-## Why the reset command may matter
+## Why a full reset may be necessary
 
 The Oracle container initializes database users and passwords on first startup.
 
-If the database credentials are changed later, the existing Oracle volume will still contain the old initialized state. In that case, use:
+If database credentials are changed later, the existing Oracle volume still contains the old initialized state. In that case, use:
 
 ```bash
 docker compose down -v
 ```
 
-to fully reset the database before starting again.
+before starting again.
 
 ---
 
-## Alternative: run the database in Docker and the app locally
+## Runtime model
 
-This is useful for development.
+The project uses one clean Docker-based runtime path:
 
-### 1. Start Oracle
+* **Oracle container**
+* **application container**
+* **Docker Compose orchestration**
 
-```bash
-docker compose up -d oracle --wait --wait-timeout 600
+The main reviewer flow does not depend on a local `spring-boot:run` path.
+
+### Container responsibilities
+
+#### Oracle container
+
+Responsible for database initialization:
+
+* `ORACLE_PASSWORD`
+* `APP_USER`
+* `APP_USER_PASSWORD`
+
+#### Application container
+
+Responsible for connecting to Oracle:
+
+* `DB_URL`
+* `DB_USERNAME`
+* `DB_PASSWORD`
+
+### Required credential mapping
+
+These values must match:
+
+* `APP_USER = DB_USERNAME`
+* `APP_USER_PASSWORD = DB_PASSWORD`
+
+### Networking rule
+
+When the application runs inside Docker, it connects to Oracle using the Compose service name:
+
+* `oracle`
+
+not:
+
+* `localhost`
+
+So the Docker datasource URL is:
+
+```text
+jdbc:oracle:thin:@oracle:1521/FREEPDB1
 ```
 
-### 2. Run the application
+From your browser on your machine, the app is reached via:
 
-```bash
-./mvnw spring-boot:run
-```
-
-Then open:
-
-* Swagger UI: `http://localhost:8080/swagger-ui.html`
+* `http://localhost:8080`
 
 ---
 
 ## Environment configuration
 
-The project supports environment-variable overrides.
+The project uses environment-variable based configuration.
 
-A committed `.env.example` file documents the available variables. A local `.env` file is optional and should not be committed.
+### Files
 
-### Demo defaults
+* `.env.example`
+  committed, safe template for local setup
 
-The Docker and Spring configuration include safe local demo defaults so reviewers can run the project without inventing credentials manually.
+* `.env`
+  local active configuration file, not committed
 
-### Main environment variables
+### Main variables
+
+#### Oracle initialization
 
 * `ORACLE_PASSWORD`
 * `APP_USER`
 * `APP_USER_PASSWORD`
+
+#### Application datasource
+
 * `DB_URL`
 * `DB_USERNAME`
 * `DB_PASSWORD`
 
-### Optional override
+### Local setup
+
+Create your local environment file like this:
 
 ```bash
 cp .env.example .env
@@ -208,26 +258,47 @@ cp .env.example .env
 
 Then edit `.env` if you want custom local values.
 
+### Example `.env.example`
+
+```env
+ORACLE_PASSWORD=REMOVED_OLD_ROOT_PASSWORD
+APP_USER=
+APP_USER_PASSWORD=REMOVED_OLD_APP_PASSWORD
+
+DB_URL=
+DB_USERNAME=
+DB_PASSWORD=REMOVED_OLD_APP_PASSWORD
+```
+
 ---
 
 ## Docker setup
 
-The main reviewer path uses a published application image, so no local Java setup is required.
+The main review path uses a published application image.
 
-### Included files
+### Relevant files
 
-* `docker-compose.yml` for Oracle + application startup
-* `Dockerfile` for the Spring Boot application image
-* `.dockerignore` for a cleaner image build
-* `.env.example` for documented local configuration
+* `docker-compose.yml`
+* `Dockerfile`
+* `.dockerignore`
+* `.env.example`
 
 ### Published image
 
-* `punschkrapferl23/oracle-procurement-demo:1.0.0`
+* `punschkrapferl23/oracle-procurement-demo:1.0.1`
 
-### Important networking note
+### Start command
 
-When the application runs inside Docker, it connects to Oracle via the Compose service name `oracle`, not `localhost`.
+```bash
+docker compose up -d --wait --wait-timeout 600
+```
+
+### Useful reset command
+
+```bash
+docker compose down -v
+docker compose up -d --wait --wait-timeout 600
+```
 
 ---
 
@@ -235,9 +306,7 @@ When the application runs inside Docker, it connects to Oracle via the Compose s
 
 Swagger UI is included to make backend review easy.
 
-### Main endpoints
-
-#### Suppliers
+### Suppliers
 
 * `GET /api/suppliers`
 * `GET /api/suppliers/{id}`
@@ -245,7 +314,7 @@ Swagger UI is included to make backend review easy.
 * `PUT /api/suppliers/{id}`
 * `DELETE /api/suppliers/{id}`
 
-#### Purchase orders
+### Purchase orders
 
 * `GET /api/purchase-orders`
 * `GET /api/purchase-orders/{id}`
@@ -253,31 +322,31 @@ Swagger UI is included to make backend review easy.
 * `PUT /api/purchase-orders/{id}`
 * `DELETE /api/purchase-orders/{id}`
 
-#### Workflow actions
+### Workflow actions
 
 * `POST /api/purchase-orders/{id}/submit`
 * `POST /api/purchase-orders/{id}/approve`
 * `POST /api/purchase-orders/{id}/cancel`
 
-#### Summary
+### Summary
 
-* `GET /api/purchase-orders/status-summary`
+* `GET /api/purchase-orders/summary/status`
 
 ---
 
 ## Example review flow
 
-A reviewer can verify the project quickly like this:
+A quick end-to-end review can look like this:
 
-1. Start the stack with Docker
+1. Start the stack with Docker Compose
 2. Open Swagger UI
 3. Create a supplier
-4. Create a purchase order
-5. Submit it
-6. Approve it
-7. Check the status summary endpoint
+4. Create a purchase order linked to that supplier
+5. Submit the purchase order
+6. Approve the purchase order
+7. Call the status summary endpoint
 
-That gives a full end-to-end view of the main workflow without needing to inspect the database manually.
+This covers the main workflow without needing to inspect the database manually.
 
 ---
 
@@ -289,28 +358,13 @@ The test setup covers multiple layers of the backend.
 
 * Service unit tests with Mockito
 * Web MVC slice tests for controllers
-* Integration tests with real Oracle database access
+* Integration tests with Oracle-backed application setup
 
 ### Run all tests
 
 ```bash
-./mvnw clean test
-```
-
----
-
-## Build from source
-
-Package the application:
-
-```bash
-./mvnw clean package
-```
-
-Run the packaged jar locally:
-
-```bash
-java -jar target/oracle-procurement-demo-0.0.1-SNAPSHOT.jar
+cp .env.example .env
+./scripts/run-integration-tests.sh
 ```
 
 ---
@@ -321,7 +375,7 @@ java -jar target/oracle-procurement-demo-0.0.1-SNAPSHOT.jar
 * The project prioritizes clarity and reviewability over feature breadth
 * Docker is used to reduce setup friction
 * Oracle is included intentionally to demonstrate working integration with a non-trivial relational database setup
-* The published Docker image is intended to make reviewing easier, while the source code remains fully available
+* Swagger/OpenAPI is included so the workflow can be reviewed interactively without needing a separate client
 
 ---
 
@@ -348,17 +402,9 @@ Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 

@@ -5,9 +5,9 @@ services:
     ports:
       - "1521:1521"
     environment:
-      ORACLE_PASSWORD: ${ORACLE_PASSWORD:-REMOVED_OLD_ROOT_PASSWORD}
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
       APP_USER: ${APP_USER}
-      APP_USER_PASSWORD: ${APP_USER_PASSWORD:-REMOVED_OLD_APP_PASSWORD}
+      APP_USER_PASSWORD: ${APP_USER_PASSWORD}
     healthcheck:
       test: ["CMD", "healthcheck.sh"]
       interval: 10s
@@ -19,7 +19,7 @@ services:
       - oracle-procurement-data:/opt/oracle/oradata
 
   app:
-    image: punschkrapferl23/oracle-procurement-demo:1.0.0
+    image: punschkrapferl23/oracle-procurement-demo:1.0.1
     container_name: oracle-procurement-app
     depends_on:
       oracle:
@@ -27,10 +27,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: dev
-      DB_URL: jdbc:oracle:thin:@oracle:1521/FREEPDB1
-      DB_USERNAME: ${APP_USER}
-      DB_PASSWORD: ${APP_USER_PASSWORD:-REMOVED_OLD_APP_PASSWORD}
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
 
 volumes:
   oracle-procurement-data:
