@@ -1,9 +1,5 @@
 package com.example.oracleprocurementdemo;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import com.example.oracleprocurementdemo.common.exception.ApiErrorResponse;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderResponse;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderStatusSummaryResponse;
@@ -26,11 +22,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestRestTemplate
-@ActiveProfiles("test")
 class OracleProcurementDemoApplicationTests {
 
 	@Autowired
@@ -41,8 +40,19 @@ class OracleProcurementDemoApplicationTests {
 
 	@BeforeEach
 	void cleanDatabase() {
-		// Intentional full cleanup for integration tests
-		// This runs only against the test profile database before each test
+		/*
+		 * Intentional test-only cleanup for full integration test isolation.
+		 *
+		 * Clear all application data before each test so every scenario starts
+		 * from a known empty state and test results stay deterministic.
+		 *
+		 * The delete order is intentional as well:
+		 * 1. purchase_order_lines
+		 * 2. purchase_orders
+		 * 3. suppliers
+		 *
+		 * Child tables must be cleared before parent tables to avoid foreign key violations.
+		 */
 		jdbcTemplate.execute("DELETE FROM purchase_order_lines");
 		jdbcTemplate.execute("DELETE FROM purchase_orders");
 		jdbcTemplate.execute("DELETE FROM suppliers");
@@ -150,6 +160,8 @@ class OracleProcurementDemoApplicationTests {
 		assertEquals("Punschkrapferl", createResponse.getBody().getRequestedBy());
 		assertEquals(2, createResponse.getBody().getLines().size());
 		assertBigDecimalEquals("111.50", createResponse.getBody().getTotalAmount());
+		assertNull(createResponse.getBody().getCancellationReason());
+		assertNull(createResponse.getBody().getCancelledAt());
 
 		Long purchaseOrderId = createResponse.getBody().getId();
 
@@ -174,6 +186,8 @@ class OracleProcurementDemoApplicationTests {
 		assertEquals(HttpStatus.OK, approveResponse.getStatusCode());
 		assertNotNull(approveResponse.getBody());
 		assertEquals("APPROVED", approveResponse.getBody().getStatus().name());
+		assertNull(approveResponse.getBody().getCancellationReason());
+		assertNull(approveResponse.getBody().getCancelledAt());
 
 		ResponseEntity<PurchaseOrderResponse> getByIdResponse =
 				restTemplate.getForEntity(
@@ -185,6 +199,8 @@ class OracleProcurementDemoApplicationTests {
 		assertNotNull(getByIdResponse.getBody());
 		assertEquals("APPROVED", getByIdResponse.getBody().getStatus().name());
 		assertBigDecimalEquals("111.50", getByIdResponse.getBody().getTotalAmount());
+		assertNull(getByIdResponse.getBody().getCancellationReason());
+		assertNull(getByIdResponse.getBody().getCancelledAt());
 
 		ResponseEntity<List<PurchaseOrderStatusSummaryResponse>> summaryResponse =
 				restTemplate.exchange(
@@ -200,6 +216,171 @@ class OracleProcurementDemoApplicationTests {
 		assertEquals(1, summaryResponse.getBody().size());
 		assertEquals("APPROVED", summaryResponse.getBody().getFirst().getStatus().name());
 		assertEquals(1L, summaryResponse.getBody().getFirst().getCount());
+	}
+
+	@Test
+	@DisplayName("Should cancel an approved purchase order with a reason")
+	void shouldCancelApprovedPurchaseOrderWithReason() {
+		Long supplierId = createSupplier(
+				"SUP-3501",
+				"Omega Industrial Supply",
+				"orders@omega-industrial.com"
+		);
+
+		Long purchaseOrderId = createDraftPurchaseOrder("PO-2026-3501", supplierId);
+
+		ResponseEntity<PurchaseOrderResponse> submitResponse =
+				restTemplate.postForEntity(
+						"/api/purchase-orders/" + purchaseOrderId + "/submit",
+						null,
+						PurchaseOrderResponse.class
+				);
+
+		assertEquals(HttpStatus.OK, submitResponse.getStatusCode());
+		assertNotNull(submitResponse.getBody());
+		assertEquals("SUBMITTED", submitResponse.getBody().getStatus().name());
+
+		ResponseEntity<PurchaseOrderResponse> approveResponse =
+				restTemplate.postForEntity(
+						"/api/purchase-orders/" + purchaseOrderId + "/approve",
+						null,
+						PurchaseOrderResponse.class
+				);
+
+		assertEquals(HttpStatus.OK, approveResponse.getStatusCode());
+		assertNotNull(approveResponse.getBody());
+		assertEquals("APPROVED", approveResponse.getBody().getStatus().name());
+
+		String cancelJson = """
+                {
+                  "reason": "Supplier could not confirm the delivery timeline"
+                }
+                """;
+
+		ResponseEntity<PurchaseOrderResponse> cancelResponse =
+				restTemplate.postForEntity(
+						"/api/purchase-orders/" + purchaseOrderId + "/cancel",
+						jsonRequest(cancelJson),
+						PurchaseOrderResponse.class
+				);
+
+		assertEquals(HttpStatus.OK, cancelResponse.getStatusCode());
+		assertNotNull(cancelResponse.getBody());
+		assertEquals("CANCELLED", cancelResponse.getBody().getStatus().name());
+		assertEquals(
+				"Supplier could not confirm the delivery timeline",
+				cancelResponse.getBody().getCancellationReason()
+		);
+		assertNotNull(cancelResponse.getBody().getCancelledAt());
+
+		ResponseEntity<PurchaseOrderResponse> getByIdResponse =
+				restTemplate.getForEntity(
+						"/api/purchase-orders/" + purchaseOrderId,
+						PurchaseOrderResponse.class
+				);
+
+		assertEquals(HttpStatus.OK, getByIdResponse.getStatusCode());
+		assertNotNull(getByIdResponse.getBody());
+		assertEquals("CANCELLED", getByIdResponse.getBody().getStatus().name());
+		assertEquals(
+				"Supplier could not confirm the delivery timeline",
+				getByIdResponse.getBody().getCancellationReason()
+		);
+		assertNotNull(getByIdResponse.getBody().getCancelledAt());
+
+		ResponseEntity<List<PurchaseOrderStatusSummaryResponse>> summaryResponse =
+				restTemplate.exchange(
+						"/api/purchase-orders/summary/status",
+						HttpMethod.GET,
+						null,
+						new ParameterizedTypeReference<>() {
+						}
+				);
+
+		assertEquals(HttpStatus.OK, summaryResponse.getStatusCode());
+		assertNotNull(summaryResponse.getBody());
+		assertEquals(1, summaryResponse.getBody().size());
+		assertEquals("CANCELLED", summaryResponse.getBody().getFirst().getStatus().name());
+		assertEquals(1L, summaryResponse.getBody().getFirst().getCount());
+	}
+
+	@Test
+	@DisplayName("Should delete supplier after its purchase orders were cancelled")
+	void shouldDeleteSupplierAfterItsPurchaseOrdersWereCancelled() {
+		Long supplierId = createSupplier(
+				"SUP-3601",
+				"Round Trip Supply GmbH",
+				"orders@roundtrip-supply.com"
+		);
+
+		Long purchaseOrderId = createDraftPurchaseOrder("PO-2026-3601", supplierId);
+
+		ResponseEntity<PurchaseOrderResponse> submitResponse =
+				restTemplate.postForEntity(
+						"/api/purchase-orders/" + purchaseOrderId + "/submit",
+						null,
+						PurchaseOrderResponse.class
+				);
+
+		assertEquals(HttpStatus.OK, submitResponse.getStatusCode());
+		assertNotNull(submitResponse.getBody());
+		assertEquals("SUBMITTED", submitResponse.getBody().getStatus().name());
+
+		ResponseEntity<PurchaseOrderResponse> approveResponse =
+				restTemplate.postForEntity(
+						"/api/purchase-orders/" + purchaseOrderId + "/approve",
+						null,
+						PurchaseOrderResponse.class
+				);
+
+		assertEquals(HttpStatus.OK, approveResponse.getStatusCode());
+		assertNotNull(approveResponse.getBody());
+		assertEquals("APPROVED", approveResponse.getBody().getStatus().name());
+
+		String cancelJson = """
+                {
+                  "reason": "Order cancelled as part of supplier offboarding cleanup"
+                }
+                """;
+
+		ResponseEntity<PurchaseOrderResponse> cancelResponse =
+				restTemplate.postForEntity(
+						"/api/purchase-orders/" + purchaseOrderId + "/cancel",
+						jsonRequest(cancelJson),
+						PurchaseOrderResponse.class
+				);
+
+		assertEquals(HttpStatus.OK, cancelResponse.getStatusCode());
+		assertNotNull(cancelResponse.getBody());
+		assertEquals("CANCELLED", cancelResponse.getBody().getStatus().name());
+
+		ResponseEntity<Void> deleteSupplierResponse =
+				restTemplate.exchange(
+						"/api/suppliers/" + supplierId,
+						HttpMethod.DELETE,
+						null,
+						Void.class
+				);
+
+		assertEquals(HttpStatus.NO_CONTENT, deleteSupplierResponse.getStatusCode());
+
+		ResponseEntity<ApiErrorResponse> getDeletedSupplierResponse =
+				restTemplate.getForEntity(
+						"/api/suppliers/" + supplierId,
+						ApiErrorResponse.class
+				);
+
+		assertEquals(HttpStatus.NOT_FOUND, getDeletedSupplierResponse.getStatusCode());
+		assertNotNull(getDeletedSupplierResponse.getBody());
+
+		ResponseEntity<ApiErrorResponse> getDeletedPurchaseOrderResponse =
+				restTemplate.getForEntity(
+						"/api/purchase-orders/" + purchaseOrderId,
+						ApiErrorResponse.class
+				);
+
+		assertEquals(HttpStatus.NOT_FOUND, getDeletedPurchaseOrderResponse.getStatusCode());
+		assertNotNull(getDeletedPurchaseOrderResponse.getBody());
 	}
 
 	@Test
@@ -274,6 +455,8 @@ class OracleProcurementDemoApplicationTests {
 		assertEquals(20, updateResponse.getBody().getLines().get(0).getQuantity());
 		assertEquals(8, updateResponse.getBody().getLines().get(1).getQuantity());
 		assertBigDecimalEquals("198.00", updateResponse.getBody().getTotalAmount());
+		assertNull(updateResponse.getBody().getCancellationReason());
+		assertNull(updateResponse.getBody().getCancelledAt());
 
 		ResponseEntity<PurchaseOrderResponse> getByIdResponse =
 				restTemplate.getForEntity(
@@ -287,6 +470,8 @@ class OracleProcurementDemoApplicationTests {
 		assertEquals(20, getByIdResponse.getBody().getLines().get(0).getQuantity());
 		assertEquals(8, getByIdResponse.getBody().getLines().get(1).getQuantity());
 		assertBigDecimalEquals("198.00", getByIdResponse.getBody().getTotalAmount());
+		assertNull(getByIdResponse.getBody().getCancellationReason());
+		assertNull(getByIdResponse.getBody().getCancelledAt());
 	}
 
 	private Long createSupplier(String supplierCode, String name, String contactEmail) {

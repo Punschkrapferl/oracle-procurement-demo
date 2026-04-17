@@ -1,0 +1,22 @@
+services:
+  oracle:
+    image: gvenzl/oracle-free:latest
+    container_name: oracle-procurement-oracle-dev
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PASSWORD: ${DEV_ORACLE_PASSWORD}
+      APP_USER: ${DEV_DB_USERNAME}
+      APP_USER_PASSWORD: ${DEV_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
+      start_interval: 5s
+    volumes:
+      - oracle-procurement-dev-data:/opt/oracle/oradata
+
+volumes:
+  oracle-procurement-dev-data:

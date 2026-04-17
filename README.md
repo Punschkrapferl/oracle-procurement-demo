@@ -1,48 +1,33 @@
 # Oracle Procurement Demo
 
-Small backend portfolio project built with **Java 21**, **Spring Boot 4**, **Oracle Database**, **Spring Data JPA**, **Flyway**, **Swagger/OpenAPI**, and **Docker Compose**.
+A backend project built with **Java 21**, **Spring Boot 4**, **Oracle Database**, **Spring Data JPA**, **Flyway**, **Swagger/OpenAPI**, and **Docker**.
 
-This project models a simple procurement workflow with **suppliers** and **purchase orders**. It focuses on backend concerns that are useful in a recruiter review: **clean API design, validation, workflow rules, persistence, database migrations, exception handling, testing, and reproducible local setup**.
-
----
-
-## What this project demonstrates
-
-- REST API design with Spring Boot 4
-- Oracle-backed persistence with Spring Data JPA
-- Database migrations with Flyway
-- Validation and centralized exception handling
-- Simple procurement workflow rules
-- Swagger/OpenAPI documentation for fast API review
-- Automated tests across service, controller, and integration levels
-- Docker-based local setup for reproducible reviewing
-- Published Docker image for low-friction project review
+The application models a small procurement workflow around **suppliers** and **purchase orders**. The focus is on clean backend structure, business rules, validation, persistence, testing, and reproducible local setup.
 
 ---
 
-## Scope
+## Overview
 
-The project intentionally stays small and practical.
-
-### Implemented features
+This project includes:
 
 - Supplier CRUD
 - Purchase order CRUD
 - Purchase order line items
-- Workflow actions:
+- Purchase order workflow actions:
   - submit
   - approve
   - cancel
 - Purchase order status summary endpoint
-- Validation and structured error responses
-- Flyway-based schema management
-- Swagger/OpenAPI UI
-- Dockerized Oracle database
-- Dockerized application setup for easy review
+- Flyway database migrations
+- Centralized validation and error handling
+- Swagger/OpenAPI documentation
+- Separate **demo** and **development** runtime paths
 
-### Workflow idea
+---
 
-A purchase order starts as a draft and can move through a small approval flow.
+## Workflow
+
+A purchase order starts in `DRAFT` status and can move through a small workflow.
 
 Example lifecycle:
 
@@ -74,7 +59,7 @@ Cancellation is also supported according to the business rules implemented in th
 
 ---
 
-## Package structure
+## Project structure
 
 ```text
 src
@@ -100,211 +85,177 @@ src
 │     └─ application-dev.yml
 └─ test
    ├─ java/com/example/oracleprocurementdemo
-   └─ resources/application-test.yml
+   └─ resources
+      ├─ application-test.yml
+      └─ application-test-dev.yml
 ````
 
 ---
 
-## Quick review path
+## Runtime paths
 
-This is the main and recommended way to review the project.
+The project currently supports two separate runtime modes.
 
-### Prerequisites
+### Demo runtime
+
+The demo runtime is fully containerized.
+
+* Oracle runs in Docker
+* the application runs in Docker
+* orchestration is handled through `docker-compose.yml`
+
+### Development runtime
+
+The development runtime keeps the database in Docker and runs the application locally.
+
+* Oracle runs in Docker
+* the application runs locally with Spring Boot
+* orchestration uses `docker-compose-dev.yml` and helper scripts
+* the active Spring profile is `dev`
+
+---
+
+## Configuration
+
+The project uses separate configuration for demo and development.
+
+### Environment files
+
+* `.env.example`
+  template for the demo setup
+
+* `.env.demo`
+  local demo runtime configuration
+
+* `.env`
+  local development runtime configuration
+
+### Spring config files
+
+* `application.yml`
+  default/demo runtime using `DEMO_*`
+
+* `application-dev.yml`
+  development runtime using `DEV_*`
+
+* `application-test.yml`
+  demo test configuration
+
+* `application-test-dev.yml`
+  development test configuration
+
+---
+
+## Quick start
+
+### Demo runtime
+
+This is the simplest way to run the project.
+
+#### Prerequisites
 
 * Docker Desktop installed and running
-* Port `8080` free for the application
-* Port `1521` free for Oracle
+* port `8080` free
+* port `1522` free
 
-### 1. Create a local environment file
-
-```bash
-cp .env.example .env
-```
-
-### 2. Start the full stack
+#### Start
 
 ```bash
-docker compose up -d --wait --wait-timeout 600
+git clone https://github.com/Punschkrapferl/oracle-procurement-demo
+cd oracle-procurement-demo
 ```
 
-### 3. Open the API docs
+```bash
+cp .env.example .env.demo
+./scripts/demo/run-demo.sh
+```
+
+#### Open API documentation
 
 * Swagger UI: `http://localhost:8080/swagger-ui.html`
 * OpenAPI docs: `http://localhost:8080/v3/api-docs`
 
-### 4. Stop the stack
+#### Stop
 
 ```bash
-docker compose down
+./scripts/demo/stop-demo.sh
 ```
 
-### 5. Full reset
-
-If you want a completely fresh Oracle database:
+#### Reset demo database
 
 ```bash
-docker compose down -v
-docker compose up -d --wait --wait-timeout 600
+./scripts/demo/reset-demo-db.sh
+./scripts/demo/run-demo.sh
 ```
-
-This removes the Oracle volume and recreates the schema from scratch through Flyway.
 
 ---
 
-## Why a full reset may be necessary
+### Development runtime
 
-The Oracle container initializes database users and passwords on first startup.
+#### Prerequisites
 
-If database credentials are changed later, the existing Oracle volume still contains the old initialized state. In that case, use:
+* Docker Desktop installed and running
+* Java 21 installed
+* port `8080` free
+* port `1521` free
 
-```bash
-docker compose down -v
-```
+#### Start
 
-before starting again.
-
----
-
-## Runtime model
-
-The project uses one clean Docker-based runtime path:
-
-* **Oracle container**
-* **application container**
-* **Docker Compose orchestration**
-
-The main reviewer flow does not depend on a local `spring-boot:run` path.
-
-### Container responsibilities
-
-#### Oracle container
-
-Responsible for database initialization:
-
-* `ORACLE_PASSWORD`
-* `APP_USER`
-* `APP_USER_PASSWORD`
-
-#### Application container
-
-Responsible for connecting to Oracle:
-
-* `DB_URL`
-* `DB_USERNAME`
-* `DB_PASSWORD`
-
-### Required credential mapping
-
-These values must match:
-
-* `APP_USER = DB_USERNAME`
-* `APP_USER_PASSWORD = DB_PASSWORD`
-
-### Networking rule
-
-When the application runs inside Docker, it connects to Oracle using the Compose service name:
-
-* `oracle`
-
-not:
-
-* `localhost`
-
-So the Docker datasource URL is:
-
-```text
-jdbc:oracle:thin:@oracle:1521/FREEPDB1
-```
-
-From your browser on your machine, the app is reached via:
-
-* `http://localhost:8080`
-
----
-
-## Environment configuration
-
-The project uses environment-variable based configuration.
-
-### Files
-
-* `.env.example`
-  committed, safe template for local setup
-
-* `.env`
-  local active configuration file, not committed
-
-### Main variables
-
-#### Oracle initialization
-
-* `ORACLE_PASSWORD`
-* `APP_USER`
-* `APP_USER_PASSWORD`
-
-#### Application datasource
-
-* `DB_URL`
-* `DB_USERNAME`
-* `DB_PASSWORD`
-
-### Local setup
-
-Create your local environment file like this:
+Create a local `.env` file with the `DEV_*` variables, then run:
 
 ```bash
-cp .env.example .env
+./scripts/dev/run-dev.sh
 ```
 
-Then edit `.env` if you want custom local values.
+#### Stop
 
-### Example `.env.example`
+```bash
+./scripts/dev/stop-dev.sh
+```
 
-```env
-ORACLE_PASSWORD=REMOVED_OLD_ROOT_PASSWORD
-APP_USER=
-APP_USER_PASSWORD=REMOVED_OLD_APP_PASSWORD
+#### Reset development database
 
-DB_URL=
-DB_USERNAME=
-DB_PASSWORD=REMOVED_OLD_APP_PASSWORD
+```bash
+./scripts/dev/reset-dev-db.sh
+```
+
+#### Run development tests
+
+```bash
+./scripts/dev/run-dev-test.sh
 ```
 
 ---
 
 ## Docker setup
 
-The main review path uses a published application image.
-
 ### Relevant files
 
 * `docker-compose.yml`
+* `docker-compose-dev.yml`
 * `Dockerfile`
 * `.dockerignore`
-* `.env.example`
 
 ### Published image
 
-* `punschkrapferl23/oracle-procurement-demo:1.0.1`
+* `punschkrapferl23/oracle-procurement-demo:1.0.2`
 
-### Start command
+### Demo container networking
 
-```bash
-docker compose up -d --wait --wait-timeout 600
+Inside Docker, the application connects to Oracle using the Compose service name and the Oracle container port:
+
+```text
+jdbc:oracle:thin:@oracle:1521/FREEPDB1
 ```
 
-### Useful reset command
+Important distinction:
 
-```bash
-docker compose down -v
-docker compose up -d --wait --wait-timeout 600
-```
+* `1521` is the Oracle port inside Docker
+* `1522` is the host port exposed for local machine access in the demo runtime
 
 ---
 
-## API documentation
-
-Swagger UI is included to make backend review easy.
+## API endpoints
 
 ### Suppliers
 
@@ -334,61 +285,63 @@ Swagger UI is included to make backend review easy.
 
 ---
 
-## Example review flow
+## Example flow
 
-A quick end-to-end review can look like this:
+A typical application flow looks like this:
 
-1. Start the stack with Docker Compose
-2. Open Swagger UI
-3. Create a supplier
-4. Create a purchase order linked to that supplier
-5. Submit the purchase order
-6. Approve the purchase order
-7. Call the status summary endpoint
-
-This covers the main workflow without needing to inspect the database manually.
+1. Create a supplier
+2. Create a purchase order linked to that supplier
+3. Submit the purchase order
+4. Approve or cancel it
+5. Delete the supplier
+6. Check the status summary endpoint
 
 ---
 
 ## Testing
 
-The test setup covers multiple layers of the backend.
+The test setup covers several backend layers:
 
-### Included test types
+* service unit tests with Mockito
+* Web MVC controller tests
+* integration tests with Oracle-backed application setup
 
-* Service unit tests with Mockito
-* Web MVC slice tests for controllers
-* Integration tests with Oracle-backed application setup
+### Run tests
 
-### Run all tests
+Demo-oriented test path:
 
 ```bash
-cp .env.example .env
-./scripts/run-integration-tests.sh
+./scripts/demo/run-demo-test.sh
+```
+
+Development-oriented test path:
+
+```bash
+./scripts/dev/run-dev-test.sh
 ```
 
 ---
 
-## Notes for reviewers
+## Notes
 
-* This is a backend-focused demo, not a full procurement platform
-* The project prioritizes clarity and reviewability over feature breadth
-* Docker is used to reduce setup friction
-* Oracle is included intentionally to demonstrate working integration with a non-trivial relational database setup
-* Swagger/OpenAPI is included so the workflow can be reviewed interactively without needing a separate client
+* This is a backend-focused project, not a full procurement platform
+* The project keeps the scope intentionally small and practical
+* Oracle is included as part of the persistence setup
+* Swagger/OpenAPI is included for convenient API exploration
+* Demo and development paths are intentionally separated to keep runtime behavior explicit
 
 ---
 
 ## Future improvements
 
-Potential next steps, intentionally not required for the current demo:
+Potential next steps outside the current scope:
 
 * authentication and authorization
 * audit logging
 * pagination and filtering on more endpoints
 * CI pipeline automation
 * frontend client for the workflow
-* deployment beyond local Docker review
+* deployment beyond local Docker usage
 
 ---
 
@@ -402,9 +355,16 @@ Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+copies of the Software, and to permit persons to whom the Software is furnished
+to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

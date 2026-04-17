@@ -3,6 +3,7 @@ package com.example.oracleprocurementdemo.purchaseorder.service;
 import com.example.oracleprocurementdemo.common.exception.BusinessRuleException;
 import com.example.oracleprocurementdemo.common.exception.ResourceConflictException;
 import com.example.oracleprocurementdemo.common.exception.ResourceNotFoundException;
+import com.example.oracleprocurementdemo.purchaseorder.dto.CancelPurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.CreatePurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderLineRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderLineResponse;
@@ -17,6 +18,7 @@ import com.example.oracleprocurementdemo.supplier.entity.Supplier;
 import com.example.oracleprocurementdemo.supplier.repository.SupplierRepository;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -68,6 +70,8 @@ public class PurchaseOrderService {
 
         validateLineNumbers(request.getLines());
 
+        // A purchase order can only be created for an active supplier so that new workflow
+        // records are never attached to suppliers that are already inactive.
         Supplier supplier = findActiveSupplierById(request.getSupplierId());
 
         PurchaseOrder purchaseOrder = new PurchaseOrder();
@@ -89,6 +93,8 @@ public class PurchaseOrderService {
     public PurchaseOrderResponse updatePurchaseOrder(Long id, UpdatePurchaseOrderRequest request) {
         PurchaseOrder purchaseOrder = findPurchaseOrderDetailsById(id);
 
+        // Only draft orders remain editable. Once a workflow has progressed beyond DRAFT,
+        // the record is treated as part of an auditable business process.
         ensureDraft(purchaseOrder);
 
         String orderNumber = normalize(request.getOrderNumber());
@@ -119,6 +125,8 @@ public class PurchaseOrderService {
     public void deletePurchaseOrder(Long id) {
         PurchaseOrder purchaseOrder = findPurchaseOrderDetailsById(id);
 
+        // Deletion is intentionally limited to drafts only. Submitted, approved, or cancelled
+        // orders are treated as workflow records rather than disposable temporary data.
         ensureDraft(purchaseOrder);
 
         purchaseOrderRepository.delete(purchaseOrder);
@@ -131,6 +139,7 @@ public class PurchaseOrderService {
             throw new BusinessRuleException("Only DRAFT purchase orders can be submitted");
         }
 
+        // Submitting an empty order would move an incomplete business record into the workflow.
         if (purchaseOrder.getLines() == null || purchaseOrder.getLines().isEmpty()) {
             throw new BusinessRuleException("Purchase order must contain at least one line");
         }
@@ -144,6 +153,7 @@ public class PurchaseOrderService {
     public PurchaseOrderResponse approvePurchaseOrder(Long id) {
         PurchaseOrder purchaseOrder = findPurchaseOrderDetailsById(id);
 
+        // Approval is only valid after submission so the workflow remains linear and predictable.
         if (purchaseOrder.getStatus() != PurchaseOrderStatus.SUBMITTED) {
             throw new BusinessRuleException("Only SUBMITTED purchase orders can be approved");
         }
@@ -154,18 +164,29 @@ public class PurchaseOrderService {
         return toResponse(purchaseOrder);
     }
 
-    public PurchaseOrderResponse cancelPurchaseOrder(Long id) {
+    public PurchaseOrderResponse cancelPurchaseOrder(Long id, CancelPurchaseOrderRequest request) {
         PurchaseOrder purchaseOrder = findPurchaseOrderDetailsById(id);
-
-        if (purchaseOrder.getStatus() == PurchaseOrderStatus.APPROVED) {
-            throw new BusinessRuleException("Approved purchase orders cannot be cancelled");
-        }
 
         if (purchaseOrder.getStatus() == PurchaseOrderStatus.CANCELLED) {
             throw new BusinessRuleException("Purchase order is already cancelled");
         }
 
+        // In this workflow, cancellation is modeled as a final business action on an already
+        // approved order, not as an alternative to submission.
+        if (purchaseOrder.getStatus() != PurchaseOrderStatus.APPROVED) {
+            throw new BusinessRuleException("Only APPROVED purchase orders can be cancelled");
+        }
+
+        String reason = normalize(request.getReason());
+
+        // The cancellation reason is stored on the record so the final state remains explainable.
+        if (reason == null || reason.isBlank()) {
+            throw new BusinessRuleException("Cancellation reason must not be blank");
+        }
+
         purchaseOrder.setStatus(PurchaseOrderStatus.CANCELLED);
+        purchaseOrder.setCancellationReason(reason);
+        purchaseOrder.setCancelledAt(LocalDateTime.now());
         entityManager.flush();
 
         return toResponse(purchaseOrder);
@@ -211,6 +232,8 @@ public class PurchaseOrderService {
     }
 
     private void replaceLines(PurchaseOrder purchaseOrder, List<PurchaseOrderLineRequest> lineRequests) {
+        // Replace the line collection explicitly so orphanRemoval can delete the old child rows
+        // before the updated line set is attached to the same purchase order.
         List<PurchaseOrderLine> existingLines = new ArrayList<>(purchaseOrder.getLines());
 
         for (PurchaseOrderLine existingLine : existingLines) {
@@ -263,6 +286,8 @@ public class PurchaseOrderService {
                 purchaseOrder.getTotalAmount(),
                 purchaseOrder.getCreatedAt(),
                 purchaseOrder.getUpdatedAt(),
+                purchaseOrder.getCancellationReason(),
+                purchaseOrder.getCancelledAt(),
                 lineResponses
         );
     }

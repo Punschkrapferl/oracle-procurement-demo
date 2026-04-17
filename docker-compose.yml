@@ -1,35 +1,35 @@
 services:
   oracle:
     image: gvenzl/oracle-free:latest
-    container_name: oracle-procurement-oracle
+    container_name: oracle-procurement-oracle-demo
     ports:
-      - "1521:1521"
+      - "1522:1521"
     environment:
-      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
-      APP_USER: ${APP_USER}
-      APP_USER_PASSWORD: ${APP_USER_PASSWORD}
+      ORACLE_PASSWORD: ${DEMO_ORACLE_PASSWORD}
+      APP_USER: ${DEMO_DB_USERNAME}
+      APP_USER_PASSWORD: ${DEMO_DB_PASSWORD}
     healthcheck:
       test: ["CMD", "healthcheck.sh"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
       start_interval: 5s
     volumes:
-      - oracle-procurement-data:/opt/oracle/oradata
+      - oracle-procurement-demo-data:/opt/oracle/oradata
 
   app:
-    image: punschkrapferl23/oracle-procurement-demo:1.0.1
-    container_name: oracle-procurement-app
+    image: punschkrapferl23/oracle-procurement-demo:1.0.3
+    container_name: oracle-procurement-app-demo
     depends_on:
       oracle:
         condition: service_healthy
     ports:
       - "8080:8080"
     environment:
-      DB_URL: ${DB_URL}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DEMO_DB_URL: jdbc:oracle:thin:@oracle:1521/FREEPDB1
+      DEMO_DB_USERNAME: ${DEMO_DB_USERNAME}
+      DEMO_DB_PASSWORD: ${DEMO_DB_PASSWORD}
 
 volumes:
-  oracle-procurement-data:
+  oracle-procurement-demo-data:

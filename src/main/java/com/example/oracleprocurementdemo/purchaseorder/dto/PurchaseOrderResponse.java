@@ -26,5 +26,7 @@ public class PurchaseOrderResponse {
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String cancellationReason;
+    private LocalDateTime cancelledAt;
     private List<PurchaseOrderLineResponse> lines;
 }

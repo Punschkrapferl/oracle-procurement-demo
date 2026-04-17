@@ -1,5 +1,6 @@
 package com.example.oracleprocurementdemo.purchaseorder.controller;
 
+import com.example.oracleprocurementdemo.purchaseorder.dto.CancelPurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.CreatePurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderResponse;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderStatusSummaryResponse;
@@ -146,9 +147,26 @@ public class PurchaseOrderController {
     }
 
     @PostMapping("/{id}/cancel")
-    @Operation(summary = "Cancel a purchase order")
-    public PurchaseOrderResponse cancelPurchaseOrder(@PathVariable Long id) {
-        return purchaseOrderService.cancelPurchaseOrder(id);
+    @Operation(summary = "Cancel an approved purchase order")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    examples = @ExampleObject(
+                            name = "Cancel approved purchase order",
+                            value = """
+                                    {
+                                      "reason": "Supplier could not confirm the delivery timeline"
+                                    }
+                                    """
+                    )
+            )
+    )
+    public PurchaseOrderResponse cancelPurchaseOrder(
+            @PathVariable Long id,
+            @Valid @RequestBody CancelPurchaseOrderRequest request
+    ) {
+        return purchaseOrderService.cancelPurchaseOrder(id, request);
     }
 
     @GetMapping("/summary/status")

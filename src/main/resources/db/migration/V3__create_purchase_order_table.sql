@@ -1,3 +1,6 @@
+-- Creates the purchase order header table with workflow status and
+-- basic consistency constraints.
+
 CREATE TABLE purchase_orders (
                                  id NUMBER(19) NOT NULL,
                                  order_number VARCHAR2(50 CHAR) NOT NULL,

@@ -22,6 +22,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -92,6 +93,8 @@ class PurchaseOrderControllerWebMvcTest {
                 .andExpect(jsonPath("$.requestedBy").value("Punschkrapferl"))
                 .andExpect(jsonPath("$.orderDate").value("2026-04-13"))
                 .andExpect(jsonPath("$.totalAmount").value(495.00))
+                .andExpect(jsonPath("$.cancellationReason").doesNotExist())
+                .andExpect(jsonPath("$.cancelledAt").doesNotExist())
                 .andExpect(jsonPath("$.lines.length()").value(2))
                 .andExpect(jsonPath("$.lines[0].lineNumber").value(1))
                 .andExpect(jsonPath("$.lines[0].itemDescription").value("Industrial safety gloves"))
@@ -183,6 +186,8 @@ class PurchaseOrderControllerWebMvcTest {
                 new BigDecimal("198.00"),
                 LocalDateTime.of(2026, 4, 14, 10, 0, 0),
                 LocalDateTime.of(2026, 4, 14, 11, 0, 0),
+                null,
+                null,
                 List.of(
                         new PurchaseOrderLineResponse(
                                 1L,
@@ -203,7 +208,7 @@ class PurchaseOrderControllerWebMvcTest {
                 )
         );
 
-        when(purchaseOrderService.updatePurchaseOrder(org.mockito.ArgumentMatchers.eq(300L), any()))
+        when(purchaseOrderService.updatePurchaseOrder(eq(300L), any()))
                 .thenReturn(response);
 
         String requestBody = """
@@ -279,7 +284,7 @@ class PurchaseOrderControllerWebMvcTest {
     @Test
     @DisplayName("POST /api/purchase-orders/{id}/cancel returns 200 and cancelled order")
     void cancelPurchaseOrder_shouldReturnCancelledOrder() throws Exception {
-        PurchaseOrderResponse response = buildPurchaseOrderResponse(
+        PurchaseOrderResponse response = new PurchaseOrderResponse(
                 600L,
                 "PO-2026-6001",
                 6L,
@@ -287,15 +292,68 @@ class PurchaseOrderControllerWebMvcTest {
                 PurchaseOrderStatus.CANCELLED,
                 "Punschkrapferl",
                 LocalDate.of(2026, 4, 14),
-                new BigDecimal("111.50")
+                new BigDecimal("111.50"),
+                LocalDateTime.of(2026, 4, 14, 10, 0, 0),
+                LocalDateTime.of(2026, 4, 14, 12, 30, 0),
+                "Supplier could not confirm the delivery timeline",
+                LocalDateTime.of(2026, 4, 14, 12, 30, 0),
+                List.of(
+                        new PurchaseOrderLineResponse(
+                                1L,
+                                1,
+                                "Industrial safety gloves",
+                                10,
+                                new BigDecimal("4.90"),
+                                new BigDecimal("49.00")
+                        ),
+                        new PurchaseOrderLineResponse(
+                                2L,
+                                2,
+                                "Protective safety goggles",
+                                5,
+                                new BigDecimal("12.50"),
+                                new BigDecimal("62.50")
+                        )
+                )
         );
 
-        when(purchaseOrderService.cancelPurchaseOrder(600L)).thenReturn(response);
+        when(purchaseOrderService.cancelPurchaseOrder(eq(600L), any())).thenReturn(response);
 
-        mockMvc.perform(post("/api/purchase-orders/{id}/cancel", 600L))
+        String requestBody = """
+                {
+                  "reason": "Supplier could not confirm the delivery timeline"
+                }
+                """;
+
+        mockMvc.perform(post("/api/purchase-orders/{id}/cancel", 600L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(600))
-                .andExpect(jsonPath("$.status").value("CANCELLED"));
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.cancellationReason")
+                        .value("Supplier could not confirm the delivery timeline"))
+                .andExpect(jsonPath("$.cancelledAt").value("2026-04-14T12:30:00"));
+    }
+
+    @Test
+    @DisplayName("POST /api/purchase-orders/{id}/cancel returns 400 when reason is blank")
+    void cancelPurchaseOrder_shouldReturnBadRequest_whenReasonIsBlank() throws Exception {
+        String requestBody = """
+                {
+                  "reason": ""
+                }
+                """;
+
+        mockMvc.perform(post("/api/purchase-orders/{id}/cancel", 601L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.path").value("/api/purchase-orders/601/cancel"))
+                .andExpect(jsonPath("$.validationErrors.reason").value("must not be blank"));
     }
 
     @Test
@@ -370,6 +428,8 @@ class PurchaseOrderControllerWebMvcTest {
                 totalAmount,
                 LocalDateTime.of(2026, 4, 14, 10, 0, 0),
                 LocalDateTime.of(2026, 4, 14, 11, 0, 0),
+                null,
+                null,
                 lines
         );
     }

@@ -1,3 +1,6 @@
+-- Creates the Oracle sequences used by the supplier, purchase order,
+-- and purchase order line entities.
+
 CREATE SEQUENCE supplier_seq
     START WITH 1
     INCREMENT BY 1

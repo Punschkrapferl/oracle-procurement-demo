@@ -1,3 +1,6 @@
+-- Creates the purchase order line table and enforces line-level
+-- quantity, pricing, and uniqueness rules.
+
 CREATE TABLE purchase_order_lines (
                                       id NUMBER(19) NOT NULL,
                                       purchase_order_id NUMBER(19) NOT NULL,

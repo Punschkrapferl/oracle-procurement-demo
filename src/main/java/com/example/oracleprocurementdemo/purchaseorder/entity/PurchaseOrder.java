@@ -64,6 +64,12 @@ public class PurchaseOrder {
     @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -75,12 +81,14 @@ public class PurchaseOrder {
     private List<PurchaseOrderLine> lines = new ArrayList<>();
 
     public void addLine(PurchaseOrderLine line) {
+        // Keep both sides of the relationship in sync and immediately refresh the header total.
         lines.add(line);
         line.setPurchaseOrder(this);
         recalculateTotalAmount();
     }
 
     public void removeLine(PurchaseOrderLine line) {
+        // Detach the child from both sides so orphanRemoval can delete it correctly.
         lines.remove(line);
         line.setPurchaseOrder(null);
         recalculateTotalAmount();
@@ -97,6 +105,8 @@ public class PurchaseOrder {
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();
 
+        // Apply safe defaults before the first insert so the entity always reaches the database
+        // in a valid initial state.
         if (status == null) {
             status = PurchaseOrderStatus.DRAFT;
         }
@@ -111,6 +121,7 @@ public class PurchaseOrder {
 
     @PreUpdate
     void preUpdate() {
+        // Keep totals defensive and always refresh the technical update timestamp.
         if (totalAmount == null) {
             totalAmount = BigDecimal.ZERO;
         }

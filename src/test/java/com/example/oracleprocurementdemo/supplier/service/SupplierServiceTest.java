@@ -2,6 +2,8 @@ package com.example.oracleprocurementdemo.supplier.service;
 
 import com.example.oracleprocurementdemo.common.exception.ResourceConflictException;
 import com.example.oracleprocurementdemo.common.exception.ResourceNotFoundException;
+import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrder;
+import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrderStatus;
 import com.example.oracleprocurementdemo.purchaseorder.repository.PurchaseOrderRepository;
 import com.example.oracleprocurementdemo.supplier.dto.CreateSupplierRequest;
 import com.example.oracleprocurementdemo.supplier.dto.SupplierResponse;
@@ -240,27 +242,58 @@ class SupplierServiceTest {
     }
 
     @Test
-    @DisplayName("Should delete supplier when no purchase orders exist")
-    void shouldDeleteSupplierWhenNoPurchaseOrdersExist() {
+    @DisplayName("Should delete supplier when no non-cancelled purchase orders exist")
+    void shouldDeleteSupplierWhenNoNonCancelledPurchaseOrdersExist() {
         Supplier supplier = buildSupplier(40L, "SUP-6001", "Delete Me Supplier", "delete@me.com", true);
 
         when(supplierRepository.findById(40L)).thenReturn(Optional.of(supplier));
-        when(purchaseOrderRepository.existsBySupplier_Id(40L)).thenReturn(false);
+        when(purchaseOrderRepository.existsBySupplier_IdAndStatusNot(40L, PurchaseOrderStatus.CANCELLED))
+                .thenReturn(false);
+        when(purchaseOrderRepository.findAllBySupplier_IdAndStatus(40L, PurchaseOrderStatus.CANCELLED))
+                .thenReturn(List.of());
 
         supplierService.deleteSupplier(40L);
 
         verify(supplierRepository).findById(40L);
-        verify(purchaseOrderRepository).existsBySupplier_Id(40L);
+        verify(purchaseOrderRepository).existsBySupplier_IdAndStatusNot(40L, PurchaseOrderStatus.CANCELLED);
+        verify(purchaseOrderRepository).findAllBySupplier_IdAndStatus(40L, PurchaseOrderStatus.CANCELLED);
+        verify(purchaseOrderRepository, never()).deleteAll(anyList());
         verify(supplierRepository).delete(supplier);
     }
 
     @Test
-    @DisplayName("Should reject delete when purchase orders already exist for supplier")
-    void shouldRejectDeleteWhenPurchaseOrdersAlreadyExist() {
+    @DisplayName("Should delete supplier and cancelled purchase orders when only cancelled purchase orders exist")
+    void shouldDeleteSupplierAndCancelledPurchaseOrdersWhenOnlyCancelledPurchaseOrdersExist() {
+        Supplier supplier = buildSupplier(45L, "SUP-6501", "Cancelled Cleanup Supplier", "cleanup@sup.com", true);
+
+        PurchaseOrder cancelledPurchaseOrder = new PurchaseOrder();
+        cancelledPurchaseOrder.setId(900L);
+
+        List<PurchaseOrder> cancelledPurchaseOrders = List.of(cancelledPurchaseOrder);
+
+        when(supplierRepository.findById(45L)).thenReturn(Optional.of(supplier));
+        when(purchaseOrderRepository.existsBySupplier_IdAndStatusNot(45L, PurchaseOrderStatus.CANCELLED))
+                .thenReturn(false);
+        when(purchaseOrderRepository.findAllBySupplier_IdAndStatus(45L, PurchaseOrderStatus.CANCELLED))
+                .thenReturn(cancelledPurchaseOrders);
+
+        supplierService.deleteSupplier(45L);
+
+        verify(supplierRepository).findById(45L);
+        verify(purchaseOrderRepository).existsBySupplier_IdAndStatusNot(45L, PurchaseOrderStatus.CANCELLED);
+        verify(purchaseOrderRepository).findAllBySupplier_IdAndStatus(45L, PurchaseOrderStatus.CANCELLED);
+        verify(purchaseOrderRepository).deleteAll(cancelledPurchaseOrders);
+        verify(supplierRepository).delete(supplier);
+    }
+
+    @Test
+    @DisplayName("Should reject delete when non-cancelled purchase orders already exist for supplier")
+    void shouldRejectDeleteWhenNonCancelledPurchaseOrdersAlreadyExist() {
         Supplier supplier = buildSupplier(50L, "SUP-7001", "Protected Supplier", "protected@sup.com", true);
 
         when(supplierRepository.findById(50L)).thenReturn(Optional.of(supplier));
-        when(purchaseOrderRepository.existsBySupplier_Id(50L)).thenReturn(true);
+        when(purchaseOrderRepository.existsBySupplier_IdAndStatusNot(50L, PurchaseOrderStatus.CANCELLED))
+                .thenReturn(true);
 
         ResourceConflictException exception = assertThrows(
                 ResourceConflictException.class,
@@ -268,12 +301,13 @@ class SupplierServiceTest {
         );
 
         assertEquals(
-                "Supplier cannot be deleted because purchase orders already exist for it",
+                "Supplier cannot be deleted because non-cancelled purchase orders still exist for it",
                 exception.getMessage()
         );
 
         verify(supplierRepository).findById(50L);
-        verify(purchaseOrderRepository).existsBySupplier_Id(50L);
+        verify(purchaseOrderRepository).existsBySupplier_IdAndStatusNot(50L, PurchaseOrderStatus.CANCELLED);
+        verify(purchaseOrderRepository, never()).findAllBySupplier_IdAndStatus(anyLong(), any());
         verify(supplierRepository, never()).delete(any());
     }
 

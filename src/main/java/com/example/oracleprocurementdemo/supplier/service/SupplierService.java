@@ -2,6 +2,8 @@ package com.example.oracleprocurementdemo.supplier.service;
 
 import com.example.oracleprocurementdemo.common.exception.ResourceConflictException;
 import com.example.oracleprocurementdemo.common.exception.ResourceNotFoundException;
+import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrder;
+import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrderStatus;
 import com.example.oracleprocurementdemo.purchaseorder.repository.PurchaseOrderRepository;
 import com.example.oracleprocurementdemo.supplier.dto.CreateSupplierRequest;
 import com.example.oracleprocurementdemo.supplier.dto.SupplierResponse;
@@ -84,10 +86,21 @@ public class SupplierService {
     public void deleteSupplier(Long id) {
         Supplier supplier = findSupplierById(id);
 
-        if (purchaseOrderRepository.existsBySupplier_Id(id)) {
+        // A supplier must not be deleted while purchase orders in an active business state
+        // still reference it. This protects in-progress workflow data from disappearing.
+        if (purchaseOrderRepository.existsBySupplier_IdAndStatusNot(id, PurchaseOrderStatus.CANCELLED)) {
             throw new ResourceConflictException(
-                    "Supplier cannot be deleted because purchase orders already exist for it"
+                    "Supplier cannot be deleted because non-cancelled purchase orders still exist for it"
             );
+        }
+
+        // Cancelled purchase orders are treated as removable historical dependents here.
+        // They are deleted first so the supplier relationship no longer blocks supplier deletion.
+        List<PurchaseOrder> cancelledPurchaseOrders =
+                purchaseOrderRepository.findAllBySupplier_IdAndStatus(id, PurchaseOrderStatus.CANCELLED);
+
+        if (!cancelledPurchaseOrders.isEmpty()) {
+            purchaseOrderRepository.deleteAll(cancelledPurchaseOrders);
         }
 
         supplierRepository.delete(supplier);

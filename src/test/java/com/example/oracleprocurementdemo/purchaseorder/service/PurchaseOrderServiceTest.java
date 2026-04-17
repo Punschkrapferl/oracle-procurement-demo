@@ -3,6 +3,7 @@ package com.example.oracleprocurementdemo.purchaseorder.service;
 import com.example.oracleprocurementdemo.common.exception.BusinessRuleException;
 import com.example.oracleprocurementdemo.common.exception.ResourceConflictException;
 import com.example.oracleprocurementdemo.common.exception.ResourceNotFoundException;
+import com.example.oracleprocurementdemo.purchaseorder.dto.CancelPurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.CreatePurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderLineRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderResponse;
@@ -21,12 +22,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 class PurchaseOrderServiceTest {
 
@@ -89,6 +92,8 @@ class PurchaseOrderServiceTest {
         assertEquals(LocalDate.of(2026, 4, 14), response.getOrderDate());
         assertEquals(0, new BigDecimal("111.50").compareTo(response.getTotalAmount()));
         assertEquals(2, response.getLines().size());
+        assertNull(response.getCancellationReason());
+        assertNull(response.getCancelledAt());
 
         verify(purchaseOrderRepository).existsByOrderNumber("PO-2026-1001");
         verify(supplierRepository).findById(1L);
@@ -223,20 +228,83 @@ class PurchaseOrderServiceTest {
     }
 
     @Test
-    @DisplayName("Should reject cancelling approved purchase order")
-    void shouldRejectCancelWhenOrderIsApproved() {
+    @DisplayName("Should cancel approved purchase order successfully")
+    void shouldCancelApprovedPurchaseOrderSuccessfully() {
         PurchaseOrder approvedOrder = buildPurchaseOrder(20L, PurchaseOrderStatus.APPROVED);
+        CancelPurchaseOrderRequest request = buildCancelRequest(" Supplier could not confirm the delivery timeline ");
 
         when(purchaseOrderRepository.findDetailsById(20L)).thenReturn(Optional.of(approvedOrder));
 
-        BusinessRuleException exception = assertThrows(
-                BusinessRuleException.class,
-                () -> purchaseOrderService.cancelPurchaseOrder(20L)
-        );
+        PurchaseOrderResponse response = purchaseOrderService.cancelPurchaseOrder(20L, request);
 
-        assertEquals("Approved purchase orders cannot be cancelled", exception.getMessage());
+        assertNotNull(response);
+        assertEquals(PurchaseOrderStatus.CANCELLED, response.getStatus());
+        assertEquals("Supplier could not confirm the delivery timeline", response.getCancellationReason());
+        assertNotNull(response.getCancelledAt());
+
+        assertEquals(PurchaseOrderStatus.CANCELLED, approvedOrder.getStatus());
+        assertEquals("Supplier could not confirm the delivery timeline", approvedOrder.getCancellationReason());
+        assertNotNull(approvedOrder.getCancelledAt());
 
         verify(purchaseOrderRepository).findDetailsById(20L);
+        verify(entityManager).flush();
+    }
+
+    @Test
+    @DisplayName("Should reject cancelling purchase order when order is not approved")
+    void shouldRejectCancelWhenOrderIsNotApproved() {
+        PurchaseOrder submittedOrder = buildPurchaseOrder(21L, PurchaseOrderStatus.SUBMITTED);
+        CancelPurchaseOrderRequest request = buildCancelRequest("Supplier issue");
+
+        when(purchaseOrderRepository.findDetailsById(21L)).thenReturn(Optional.of(submittedOrder));
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> purchaseOrderService.cancelPurchaseOrder(21L, request)
+        );
+
+        assertEquals("Only APPROVED purchase orders can be cancelled", exception.getMessage());
+
+        verify(purchaseOrderRepository).findDetailsById(21L);
+        verify(entityManager, never()).flush();
+    }
+
+    @Test
+    @DisplayName("Should reject cancelling purchase order when already cancelled")
+    void shouldRejectCancelWhenOrderIsAlreadyCancelled() {
+        PurchaseOrder cancelledOrder = buildPurchaseOrder(22L, PurchaseOrderStatus.CANCELLED);
+        cancelledOrder.setCancellationReason("Already cancelled before");
+        CancelPurchaseOrderRequest request = buildCancelRequest("Another reason");
+
+        when(purchaseOrderRepository.findDetailsById(22L)).thenReturn(Optional.of(cancelledOrder));
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> purchaseOrderService.cancelPurchaseOrder(22L, request)
+        );
+
+        assertEquals("Purchase order is already cancelled", exception.getMessage());
+
+        verify(purchaseOrderRepository).findDetailsById(22L);
+        verify(entityManager, never()).flush();
+    }
+
+    @Test
+    @DisplayName("Should reject cancelling purchase order when reason is blank")
+    void shouldRejectCancelWhenReasonIsBlank() {
+        PurchaseOrder approvedOrder = buildPurchaseOrder(23L, PurchaseOrderStatus.APPROVED);
+        CancelPurchaseOrderRequest request = buildCancelRequest("   ");
+
+        when(purchaseOrderRepository.findDetailsById(23L)).thenReturn(Optional.of(approvedOrder));
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> purchaseOrderService.cancelPurchaseOrder(23L, request)
+        );
+
+        assertEquals("Cancellation reason must not be blank", exception.getMessage());
+
+        verify(purchaseOrderRepository).findDetailsById(23L);
         verify(entityManager, never()).flush();
     }
 
@@ -291,6 +359,12 @@ class PurchaseOrderServiceTest {
         line.setQuantity(quantity);
         line.setUnitPrice(new BigDecimal(unitPrice));
         return line;
+    }
+
+    private CancelPurchaseOrderRequest buildCancelRequest(String reason) {
+        CancelPurchaseOrderRequest request = new CancelPurchaseOrderRequest();
+        request.setReason(reason);
+        return request;
     }
 
     private Supplier buildActiveSupplier(Long id, String supplierCode) {

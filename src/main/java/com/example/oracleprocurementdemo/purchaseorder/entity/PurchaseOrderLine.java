@@ -53,6 +53,7 @@ public class PurchaseOrderLine {
     private BigDecimal lineTotal;
 
     public void recalculateLineTotal() {
+        // Keep the persisted line total aligned with the current quantity and unit price.
         if (quantity != null && unitPrice != null) {
             this.lineTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
         }
@@ -61,6 +62,7 @@ public class PurchaseOrderLine {
     @PrePersist
     @PreUpdate
     void prePersistOrUpdate() {
+        // Recalculate before insert and update so the database never stores a stale line total.
         recalculateLineTotal();
     }
 }

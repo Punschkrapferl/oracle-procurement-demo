@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
         info = @Info(
                 title = "Oracle Procurement Demo API",
                 version = "v1",
-                description = "Recruiter-friendly Spring Boot backend demo for Oracle-backed supplier and purchase order workflows."
+                description = "Spring Boot backend demo for Oracle-backed supplier and purchase order workflows."
         ),
         servers = @Server(
                 url = "http://localhost:8080",

@@ -1,3 +1,5 @@
+-- Creates the supplier master data table and its basic integrity constraints.
+
 CREATE TABLE suppliers (
                            id NUMBER(19) NOT NULL,
                            supplier_code VARCHAR2(50 CHAR) NOT NULL,

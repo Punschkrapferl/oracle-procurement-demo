@@ -3,6 +3,7 @@ package com.example.oracleprocurementdemo.supplier.entity;
 import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrder;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -19,6 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.type.NumericBooleanConverter;
 
 @Getter
 @Setter
@@ -45,6 +47,7 @@ public class Supplier {
     @Column(name = "contact_email", nullable = false, length = 150)
     private String contactEmail;
 
+    @Convert(converter = NumericBooleanConverter.class)
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
