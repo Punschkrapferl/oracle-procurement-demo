@@ -30,6 +30,7 @@ export class SupplierFormPageComponent {
     active: [true]
   });
 
+  // Validates, builds the request payload, and sends it to the backend.
   onSubmit(): void {
     this.submitErrorMessage.set('');
 
@@ -65,6 +66,7 @@ export class SupplierFormPageComponent {
       });
   }
 
+  // Short getters keep the template readable.
   get supplierCode() {
     return this.supplierForm.controls.supplierCode;
   }
@@ -90,7 +92,12 @@ export class SupplierFormPageComponent {
       return error.error;
     }
 
-    if (error.error?.message) {
+    if (
+      error.error &&
+      typeof error.error === 'object' &&
+      'message' in error.error &&
+      typeof error.error.message === 'string'
+    ) {
       return error.error.message;
     }
 

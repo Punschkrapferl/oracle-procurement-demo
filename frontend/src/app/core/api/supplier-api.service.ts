@@ -13,23 +13,13 @@ export class SupplierApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${API_CONFIG.baseUrl}/suppliers`;
 
+  // Load all suppliers for the supplier list page and purchase-order usage.
   getAllSuppliers(): Observable<SupplierResponse[]> {
     return this.http.get<SupplierResponse[]>(this.baseUrl);
   }
 
-  getSupplierById(id: number): Observable<SupplierResponse> {
-    return this.http.get<SupplierResponse>(`${this.baseUrl}/${id}`);
-  }
-
+  // Create a new supplier from the supplier form page.
   createSupplier(request: CreateSupplierRequest): Observable<SupplierResponse> {
     return this.http.post<SupplierResponse>(this.baseUrl, request);
-  }
-
-  updateSupplier(id: number, request: CreateSupplierRequest): Observable<SupplierResponse> {
-    return this.http.put<SupplierResponse>(`${this.baseUrl}/${id}`, request);
-  }
-
-  deleteSupplier(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }

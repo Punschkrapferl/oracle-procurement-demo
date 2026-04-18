@@ -278,54 +278,65 @@ export class PurchaseOrderDetailPageComponent implements OnInit {
   }
 
   private buildLoadErrorMessage(error: HttpErrorResponse): string {
-    if (error.status === 0) {
-      return 'The frontend could not reach the backend. Make sure the Spring Boot application is running on http://localhost:8080.';
-    }
-
     if (error.status === 404) {
       return 'The requested purchase order could not be found.';
     }
 
-    if (typeof error.error === 'string' && error.error.trim().length > 0) {
-      return error.error;
-    }
-
-    if (error.error?.message) {
-      return error.error.message;
-    }
-
-    return `Request failed with status ${error.status}${error.statusText ? ` (${error.statusText})` : ''}.`;
+    return this.buildErrorMessage(
+      error,
+      'The frontend could not reach the backend. Make sure the Spring Boot application is running on http://localhost:8080.',
+      'Request failed'
+    );
   }
 
   private buildWorkflowErrorMessage(error: HttpErrorResponse): string {
-    if (error.status === 0) {
-      return 'The frontend could not reach the backend while performing the workflow action.';
-    }
-
-    if (typeof error.error === 'string' && error.error.trim().length > 0) {
-      return error.error;
-    }
-
-    if (error.error?.message) {
-      return error.error.message;
-    }
-
-    return `Workflow action failed with status ${error.status}${error.statusText ? ` (${error.statusText})` : ''}.`;
+    return this.buildErrorMessage(
+      error,
+      'The frontend could not reach the backend while performing the workflow action.',
+      'Workflow action failed'
+    );
   }
 
   private buildDeleteErrorMessage(error: HttpErrorResponse): string {
+    return this.buildErrorMessage(
+      error,
+      'The frontend could not reach the backend while deleting the purchase order.',
+      'Delete action failed'
+    );
+  }
+
+  private buildErrorMessage(
+    error: HttpErrorResponse,
+    offlineMessage: string,
+    fallbackPrefix: string
+  ): string {
     if (error.status === 0) {
-      return 'The frontend could not reach the backend while deleting the purchase order.';
+      return offlineMessage;
     }
 
+    const backendMessage = this.extractBackendMessage(error);
+
+    if (backendMessage) {
+      return backendMessage;
+    }
+
+    return `${fallbackPrefix} with status ${error.status}${error.statusText ? ` (${error.statusText})` : ''}.`;
+  }
+
+  private extractBackendMessage(error: HttpErrorResponse): string | null {
     if (typeof error.error === 'string' && error.error.trim().length > 0) {
       return error.error;
     }
 
-    if (error.error?.message) {
+    if (
+      error.error &&
+      typeof error.error === 'object' &&
+      'message' in error.error &&
+      typeof error.error.message === 'string'
+    ) {
       return error.error.message;
     }
 
-    return `Delete action failed with status ${error.status}${error.statusText ? ` (${error.statusText})` : ''}.`;
+    return null;
   }
 }

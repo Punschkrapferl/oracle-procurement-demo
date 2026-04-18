@@ -25,6 +25,7 @@ export class SupplierListPageComponent implements OnInit {
     this.loadSuppliers();
   }
 
+  // Loads all suppliers for the table and handles loading / error state transitions.
   loadSuppliers(): void {
     this.isLoading.set(true);
     this.errorMessage.set('');
@@ -48,7 +49,8 @@ export class SupplierListPageComponent implements OnInit {
       });
   }
 
-  trackBySupplierId(index: number, supplier: SupplierResponse): number {
+  // Helps Angular keep table rows stable during re-rendering.
+  trackBySupplierId(_: number, supplier: SupplierResponse): number {
     return supplier.id;
   }
 
@@ -61,7 +63,12 @@ export class SupplierListPageComponent implements OnInit {
       return error.error;
     }
 
-    if (error.error?.message) {
+    if (
+      error.error &&
+      typeof error.error === 'object' &&
+      'message' in error.error &&
+      typeof error.error.message === 'string'
+    ) {
       return error.error.message;
     }
 

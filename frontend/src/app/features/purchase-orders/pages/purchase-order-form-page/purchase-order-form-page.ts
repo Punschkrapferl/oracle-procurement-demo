@@ -160,6 +160,7 @@ export class PurchaseOrderFormPageComponent implements OnInit {
     return this.lines.controls as PurchaseOrderLineFormGroup[];
   }
 
+  // Loads all suppliers so the form can offer active suppliers in the dropdown.
   loadSuppliers(): void {
     this.isLoadingSuppliers.set(true);
     this.supplierLoadErrorMessage.set('');
@@ -183,6 +184,7 @@ export class PurchaseOrderFormPageComponent implements OnInit {
       });
   }
 
+  // In edit mode, load the existing purchase order and fill the form from backend data.
   loadPurchaseOrderForEdit(): void {
     const id = this.purchaseOrderId();
 
@@ -271,12 +273,14 @@ export class PurchaseOrderFormPageComponent implements OnInit {
     return this.dateFormatter.format(parsedDate);
   }
 
+  // Prevents comma input so the field stays aligned with backend decimal expectations.
   preventCommaDecimal(event: KeyboardEvent): void {
     if (event.key === ',') {
       event.preventDefault();
     }
   }
 
+  // Sanitizes pasted values so copied currency values still become valid decimal input.
   handleUnitPricePaste(index: number, event: ClipboardEvent): void {
     const pastedText = event.clipboardData?.getData('text') ?? '';
 
@@ -361,7 +365,7 @@ export class PurchaseOrderFormPageComponent implements OnInit {
       });
   }
 
-  trackByLineControl(_index: number, control: AbstractControl): AbstractControl {
+  trackByLineControl(_: number, control: AbstractControl): AbstractControl {
     return control;
   }
 
@@ -473,50 +477,26 @@ export class PurchaseOrderFormPageComponent implements OnInit {
   }
 
   private buildSupplierLoadErrorMessage(error: HttpErrorResponse): string {
-    if (error.status === 0) {
-      return 'The frontend could not reach the backend to load suppliers.';
-    }
-
-    if (error.error?.message) {
-      return error.error.message;
-    }
-
-    return `Failed to load suppliers (status ${error.status}).`;
+    return this.buildErrorMessage(
+      error,
+      'The frontend could not reach the backend to load suppliers.',
+      'Failed to load suppliers'
+    );
   }
 
   private buildPurchaseOrderLoadErrorMessage(error: HttpErrorResponse): string {
-    if (error.status === 0) {
-      return 'The frontend could not reach the backend while loading the purchase order.';
-    }
-
     if (error.status === 404) {
       return 'The requested purchase order could not be found.';
     }
 
-    if (typeof error.error === 'string' && error.error.trim().length > 0) {
-      return error.error;
-    }
-
-    if (error.error?.message) {
-      return error.error.message;
-    }
-
-    return `Failed to load purchase order (status ${error.status}).`;
+    return this.buildErrorMessage(
+      error,
+      'The frontend could not reach the backend while loading the purchase order.',
+      'Failed to load purchase order'
+    );
   }
 
   private buildSubmitErrorMessage(error: HttpErrorResponse): string {
-    if (error.status === 0) {
-      return 'The frontend could not reach the backend. Make sure the Spring Boot application is running on http://localhost:8080.';
-    }
-
-    if (typeof error.error === 'string' && error.error.trim().length > 0) {
-      return error.error;
-    }
-
-    if (error.error?.message) {
-      return error.error.message;
-    }
-
     if (error.status === 400) {
       return this.isEditMode()
         ? 'The updated purchase order data is invalid. Please check the form and line items.'
@@ -529,6 +509,45 @@ export class PurchaseOrderFormPageComponent implements OnInit {
         : 'A conflicting purchase order already exists, or the request violates a business rule.';
     }
 
-    return `Request failed with status ${error.status}${error.statusText ? ` (${error.statusText})` : ''}.`;
+    return this.buildErrorMessage(
+      error,
+      'The frontend could not reach the backend. Make sure the Spring Boot application is running on http://localhost:8080.',
+      'Request failed'
+    );
+  }
+
+  private buildErrorMessage(
+    error: HttpErrorResponse,
+    offlineMessage: string,
+    fallbackPrefix: string
+  ): string {
+    if (error.status === 0) {
+      return offlineMessage;
+    }
+
+    const backendMessage = this.extractBackendMessage(error);
+
+    if (backendMessage) {
+      return backendMessage;
+    }
+
+    return `${fallbackPrefix} with status ${error.status}${error.statusText ? ` (${error.statusText})` : ''}.`;
+  }
+
+  private extractBackendMessage(error: HttpErrorResponse): string | null {
+    if (typeof error.error === 'string' && error.error.trim().length > 0) {
+      return error.error;
+    }
+
+    if (
+      error.error &&
+      typeof error.error === 'object' &&
+      'message' in error.error &&
+      typeof error.error.message === 'string'
+    ) {
+      return error.error.message;
+    }
+
+    return null;
   }
 }

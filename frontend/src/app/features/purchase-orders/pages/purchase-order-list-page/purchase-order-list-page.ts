@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 
 import { PurchaseOrderApiService } from '../../../../core/api/purchase-order-api.service';
@@ -16,7 +16,6 @@ import { PurchaseOrderResponse } from '../../../../core/models/purchase-order-re
 })
 export class PurchaseOrderListPageComponent implements OnInit {
   private readonly purchaseOrderApiService = inject(PurchaseOrderApiService);
-  private readonly router = inject(Router);
 
   private readonly currencyFormatter = new Intl.NumberFormat('en-GB', {
     style: 'currency',
@@ -39,14 +38,15 @@ export class PurchaseOrderListPageComponent implements OnInit {
   readonly deletingPurchaseOrderId = signal<number | null>(null);
 
   ngOnInit(): void {
-    const navigation = this.router.getCurrentNavigation();
-    const navigationState = navigation?.extras.state as { successMessage?: string } | undefined;
+    // Read one-time success feedback passed through browser history state.
+    // This avoids relying on deprecated router navigation APIs.
     const historyState = window.history.state as { successMessage?: string } | undefined;
+    this.successMessage.set(historyState?.successMessage ?? '');
 
-    this.successMessage.set(navigationState?.successMessage ?? historyState?.successMessage ?? '');
     this.loadPurchaseOrders();
   }
 
+  // Loads all purchase orders and keeps the newest IDs first in the table.
   loadPurchaseOrders(): void {
     this.isLoading.set(true);
     this.errorMessage.set('');
@@ -65,14 +65,15 @@ export class PurchaseOrderListPageComponent implements OnInit {
           this.purchaseOrders.set(sortedPurchaseOrders);
         },
         error: (error: HttpErrorResponse) => {
-          this.errorMessage.set(this.buildErrorMessage(error));
+          this.errorMessage.set(this.buildLoadErrorMessage(error));
           this.purchaseOrders.set([]);
           console.error('Failed to load purchase orders', error);
         }
       });
   }
 
-  trackByPurchaseOrderId(index: number, purchaseOrder: PurchaseOrderResponse): number {
+  // Keeps DOM rows stable when Angular re-renders the list.
+  trackByPurchaseOrderId(_: number, purchaseOrder: PurchaseOrderResponse): number {
     return purchaseOrder.id;
   }
 
@@ -89,7 +90,7 @@ export class PurchaseOrderListPageComponent implements OnInit {
   }
 
   deletePurchaseOrder(purchaseOrder: PurchaseOrderResponse): void {
-    if (purchaseOrder.status !== 'DRAFT') {
+    if (!this.canDelete(purchaseOrder)) {
       return;
     }
 
@@ -172,35 +173,54 @@ export class PurchaseOrderListPageComponent implements OnInit {
     return `${purchaseOrder.supplierName} (${purchaseOrder.supplierCode})`;
   }
 
-  private buildErrorMessage(error: HttpErrorResponse): string {
-    if (error.status === 0) {
-      return 'The frontend could not reach the backend. Make sure the Spring Boot application is running on http://localhost:8080.';
-    }
-
-    if (typeof error.error === 'string' && error.error.trim().length > 0) {
-      return error.error;
-    }
-
-    if (error.error?.message) {
-      return error.error.message;
-    }
-
-    return `Request failed with status ${error.status}${error.statusText ? ` (${error.statusText})` : ''}.`;
+  private buildLoadErrorMessage(error: HttpErrorResponse): string {
+    return this.buildErrorMessage(
+      error,
+      'The frontend could not reach the backend. Make sure the Spring Boot application is running on http://localhost:8080.',
+      'Request failed'
+    );
   }
 
   private buildDeleteErrorMessage(error: HttpErrorResponse): string {
+    return this.buildErrorMessage(
+      error,
+      'The frontend could not reach the backend while deleting the purchase order.',
+      'Delete action failed'
+    );
+  }
+
+  private buildErrorMessage(
+    error: HttpErrorResponse,
+    offlineMessage: string,
+    fallbackPrefix: string
+  ): string {
     if (error.status === 0) {
-      return 'The frontend could not reach the backend while deleting the purchase order.';
+      return offlineMessage;
     }
 
+    const backendMessage = this.extractBackendMessage(error);
+
+    if (backendMessage) {
+      return backendMessage;
+    }
+
+    return `${fallbackPrefix} with status ${error.status}${error.statusText ? ` (${error.statusText})` : ''}.`;
+  }
+
+  private extractBackendMessage(error: HttpErrorResponse): string | null {
     if (typeof error.error === 'string' && error.error.trim().length > 0) {
       return error.error;
     }
 
-    if (error.error?.message) {
+    if (
+      error.error &&
+      typeof error.error === 'object' &&
+      'message' in error.error &&
+      typeof error.error.message === 'string'
+    ) {
       return error.error.message;
     }
 
-    return `Delete action failed with status ${error.status}${error.statusText ? ` (${error.statusText})` : ''}.`;
+    return null;
   }
 }
