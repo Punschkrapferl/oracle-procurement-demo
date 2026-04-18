@@ -7,7 +7,9 @@ import com.example.oracleprocurementdemo.purchaseorder.dto.CancelPurchaseOrderRe
 import com.example.oracleprocurementdemo.purchaseorder.dto.CreatePurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderLineRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderResponse;
+import com.example.oracleprocurementdemo.purchaseorder.dto.UpdatePurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrder;
+import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrderLine;
 import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrderStatus;
 import com.example.oracleprocurementdemo.purchaseorder.repository.PurchaseOrderRepository;
 import com.example.oracleprocurementdemo.supplier.entity.Supplier;
@@ -22,9 +24,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -100,6 +106,181 @@ class PurchaseOrderServiceTest {
         verify(purchaseOrderRepository).save(any(PurchaseOrder.class));
         verify(entityManager).flush();
         verify(purchaseOrderRepository).findDetailsById(100L);
+    }
+
+    @Test
+    @DisplayName("Should update draft purchase order successfully")
+    void shouldUpdateDraftPurchaseOrderSuccessfully() {
+        PurchaseOrder existingOrder = buildPurchaseOrder(10L, PurchaseOrderStatus.DRAFT);
+        existingOrder.setOrderNumber("PO-2026-1001");
+        existingOrder.setRequestedBy("Old Requester");
+        existingOrder.setOrderDate(LocalDate.of(2026, 4, 14));
+
+        PurchaseOrderLine oldLine = new PurchaseOrderLine();
+        oldLine.setLineNumber(1);
+        oldLine.setItemDescription("Old item");
+        oldLine.setQuantity(1);
+        oldLine.setUnitPrice(new BigDecimal("10.00"));
+        oldLine.recalculateLineTotal();
+        existingOrder.addLine(oldLine);
+        existingOrder.recalculateTotalAmount();
+
+        Supplier updatedSupplier = buildActiveSupplier(2L, "SUP-2002");
+
+        UpdatePurchaseOrderRequest request = buildUpdateRequest(
+                "PO-2026-2001",
+                2L,
+                "Updated Requester",
+                List.of(
+                        buildLineRequest(1, "Updated gloves", 3, "5.00"),
+                        buildLineRequest(2, "Updated goggles", 2, "7.50")
+                )
+        );
+
+        when(purchaseOrderRepository.findDetailsById(10L)).thenReturn(Optional.of(existingOrder));
+        when(purchaseOrderRepository.findByOrderNumber("PO-2026-2001")).thenReturn(Optional.empty());
+        when(supplierRepository.findById(2L)).thenReturn(Optional.of(updatedSupplier));
+        when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(entityManager).refresh(any(PurchaseOrder.class));
+
+        when(purchaseOrderRepository.findDetailsById(10L)).thenAnswer(invocation -> Optional.of(existingOrder));
+
+        PurchaseOrderResponse response = purchaseOrderService.updatePurchaseOrder(10L, request);
+
+        assertNotNull(response);
+        assertEquals(10L, response.getId());
+        assertEquals("PO-2026-2001", response.getOrderNumber());
+        assertEquals(2L, response.getSupplierId());
+        assertEquals("SUP-2002", response.getSupplierCode());
+        assertEquals("Updated Requester", response.getRequestedBy());
+        assertEquals(LocalDate.of(2026, 4, 14), response.getOrderDate());
+        assertEquals(PurchaseOrderStatus.DRAFT, response.getStatus());
+        assertEquals(2, response.getLines().size());
+        assertEquals(0, new BigDecimal("30.00").compareTo(response.getTotalAmount()));
+
+        verify(purchaseOrderRepository, atLeastOnce()).findDetailsById(10L);
+        verify(purchaseOrderRepository).findByOrderNumber("PO-2026-2001");
+        verify(supplierRepository).findById(2L);
+        verify(purchaseOrderRepository).save(existingOrder);
+        verify(entityManager, atLeastOnce()).flush();
+        verify(entityManager).refresh(existingOrder);
+    }
+
+    @Test
+    @DisplayName("Should reject update when purchase order is not draft")
+    void shouldRejectUpdateWhenOrderIsNotDraft() {
+        PurchaseOrder submittedOrder = buildPurchaseOrder(11L, PurchaseOrderStatus.SUBMITTED);
+
+        UpdatePurchaseOrderRequest request = buildUpdateRequest(
+                "PO-2026-2001",
+                1L,
+                "Updated Requester",
+                List.of(buildLineRequest(1, "Updated item", 2, "9.99"))
+        );
+
+        when(purchaseOrderRepository.findDetailsById(11L)).thenReturn(Optional.of(submittedOrder));
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> purchaseOrderService.updatePurchaseOrder(11L, request)
+        );
+
+        assertEquals("Only DRAFT purchase orders can be edited or deleted", exception.getMessage());
+
+        verify(purchaseOrderRepository).findDetailsById(11L);
+        verify(purchaseOrderRepository, never()).save(any());
+        verify(entityManager, never()).refresh(any());
+    }
+
+    @Test
+    @DisplayName("Should reject update when target order number already belongs to another order")
+    void shouldRejectUpdateWhenOrderNumberAlreadyExistsOnDifferentOrder() {
+        PurchaseOrder existingOrder = buildPurchaseOrder(12L, PurchaseOrderStatus.DRAFT);
+        PurchaseOrder conflictingOrder = buildPurchaseOrder(99L, PurchaseOrderStatus.DRAFT);
+        conflictingOrder.setOrderNumber("PO-2026-9999");
+
+        UpdatePurchaseOrderRequest request = buildUpdateRequest(
+                "PO-2026-9999",
+                1L,
+                "Updated Requester",
+                List.of(buildLineRequest(1, "Updated item", 2, "9.99"))
+        );
+
+        when(purchaseOrderRepository.findDetailsById(12L)).thenReturn(Optional.of(existingOrder));
+        when(purchaseOrderRepository.findByOrderNumber("PO-2026-9999")).thenReturn(Optional.of(conflictingOrder));
+
+        ResourceConflictException exception = assertThrows(
+                ResourceConflictException.class,
+                () -> purchaseOrderService.updatePurchaseOrder(12L, request)
+        );
+
+        assertEquals("Purchase order with number PO-2026-9999 already exists", exception.getMessage());
+
+        verify(purchaseOrderRepository).findDetailsById(12L);
+        verify(purchaseOrderRepository).findByOrderNumber("PO-2026-9999");
+        verify(supplierRepository, never()).findById(any());
+        verify(purchaseOrderRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should reject update when supplier is inactive")
+    void shouldRejectUpdateWhenSupplierIsInactive() {
+        PurchaseOrder existingOrder = buildPurchaseOrder(13L, PurchaseOrderStatus.DRAFT);
+        Supplier inactiveSupplier = buildInactiveSupplier(2L, "SUP-2002");
+
+        UpdatePurchaseOrderRequest request = buildUpdateRequest(
+                "PO-2026-2001",
+                2L,
+                "Updated Requester",
+                List.of(buildLineRequest(1, "Updated item", 2, "9.99"))
+        );
+
+        when(purchaseOrderRepository.findDetailsById(13L)).thenReturn(Optional.of(existingOrder));
+        when(purchaseOrderRepository.findByOrderNumber("PO-2026-2001")).thenReturn(Optional.empty());
+        when(supplierRepository.findById(2L)).thenReturn(Optional.of(inactiveSupplier));
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> purchaseOrderService.updatePurchaseOrder(13L, request)
+        );
+
+        assertEquals("Purchase orders can only be created for active suppliers", exception.getMessage());
+
+        verify(purchaseOrderRepository).findDetailsById(13L);
+        verify(purchaseOrderRepository).findByOrderNumber("PO-2026-2001");
+        verify(supplierRepository).findById(2L);
+        verify(purchaseOrderRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should reject update when duplicate line numbers exist")
+    void shouldRejectUpdateWhenDuplicateLineNumbersExist() {
+        PurchaseOrder existingOrder = buildPurchaseOrder(14L, PurchaseOrderStatus.DRAFT);
+
+        UpdatePurchaseOrderRequest request = buildUpdateRequest(
+                "PO-2026-2001",
+                1L,
+                "Updated Requester",
+                List.of(
+                        buildLineRequest(1, "Updated gloves", 3, "5.00"),
+                        buildLineRequest(1, "Updated goggles", 2, "7.50")
+                )
+        );
+
+        when(purchaseOrderRepository.findDetailsById(14L)).thenReturn(Optional.of(existingOrder));
+        when(purchaseOrderRepository.findByOrderNumber("PO-2026-2001")).thenReturn(Optional.empty());
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> purchaseOrderService.updatePurchaseOrder(14L, request)
+        );
+
+        assertEquals("Duplicate line number 1 is not allowed", exception.getMessage());
+
+        verify(purchaseOrderRepository).findDetailsById(14L);
+        verify(purchaseOrderRepository).findByOrderNumber("PO-2026-2001");
+        verify(supplierRepository, never()).findById(any());
+        verify(purchaseOrderRepository, never()).save(any());
     }
 
     @Test
@@ -212,30 +393,30 @@ class PurchaseOrderServiceTest {
     @Test
     @DisplayName("Should reject approval when order is not submitted")
     void shouldRejectApproveWhenOrderIsNotSubmitted() {
-        PurchaseOrder draftOrder = buildPurchaseOrder(10L, PurchaseOrderStatus.DRAFT);
+        PurchaseOrder draftOrder = buildPurchaseOrder(20L, PurchaseOrderStatus.DRAFT);
 
-        when(purchaseOrderRepository.findDetailsById(10L)).thenReturn(Optional.of(draftOrder));
+        when(purchaseOrderRepository.findDetailsById(20L)).thenReturn(Optional.of(draftOrder));
 
         BusinessRuleException exception = assertThrows(
                 BusinessRuleException.class,
-                () -> purchaseOrderService.approvePurchaseOrder(10L)
+                () -> purchaseOrderService.approvePurchaseOrder(20L)
         );
 
         assertEquals("Only SUBMITTED purchase orders can be approved", exception.getMessage());
 
-        verify(purchaseOrderRepository).findDetailsById(10L);
+        verify(purchaseOrderRepository).findDetailsById(20L);
         verify(entityManager, never()).flush();
     }
 
     @Test
     @DisplayName("Should cancel approved purchase order successfully")
     void shouldCancelApprovedPurchaseOrderSuccessfully() {
-        PurchaseOrder approvedOrder = buildPurchaseOrder(20L, PurchaseOrderStatus.APPROVED);
+        PurchaseOrder approvedOrder = buildPurchaseOrder(30L, PurchaseOrderStatus.APPROVED);
         CancelPurchaseOrderRequest request = buildCancelRequest(" Supplier could not confirm the delivery timeline ");
 
-        when(purchaseOrderRepository.findDetailsById(20L)).thenReturn(Optional.of(approvedOrder));
+        when(purchaseOrderRepository.findDetailsById(30L)).thenReturn(Optional.of(approvedOrder));
 
-        PurchaseOrderResponse response = purchaseOrderService.cancelPurchaseOrder(20L, request);
+        PurchaseOrderResponse response = purchaseOrderService.cancelPurchaseOrder(30L, request);
 
         assertNotNull(response);
         assertEquals(PurchaseOrderStatus.CANCELLED, response.getStatus());
@@ -246,83 +427,83 @@ class PurchaseOrderServiceTest {
         assertEquals("Supplier could not confirm the delivery timeline", approvedOrder.getCancellationReason());
         assertNotNull(approvedOrder.getCancelledAt());
 
-        verify(purchaseOrderRepository).findDetailsById(20L);
+        verify(purchaseOrderRepository).findDetailsById(30L);
         verify(entityManager).flush();
     }
 
     @Test
     @DisplayName("Should reject cancelling purchase order when order is not approved")
     void shouldRejectCancelWhenOrderIsNotApproved() {
-        PurchaseOrder submittedOrder = buildPurchaseOrder(21L, PurchaseOrderStatus.SUBMITTED);
+        PurchaseOrder submittedOrder = buildPurchaseOrder(31L, PurchaseOrderStatus.SUBMITTED);
         CancelPurchaseOrderRequest request = buildCancelRequest("Supplier issue");
 
-        when(purchaseOrderRepository.findDetailsById(21L)).thenReturn(Optional.of(submittedOrder));
+        when(purchaseOrderRepository.findDetailsById(31L)).thenReturn(Optional.of(submittedOrder));
 
         BusinessRuleException exception = assertThrows(
                 BusinessRuleException.class,
-                () -> purchaseOrderService.cancelPurchaseOrder(21L, request)
+                () -> purchaseOrderService.cancelPurchaseOrder(31L, request)
         );
 
         assertEquals("Only APPROVED purchase orders can be cancelled", exception.getMessage());
 
-        verify(purchaseOrderRepository).findDetailsById(21L);
+        verify(purchaseOrderRepository).findDetailsById(31L);
         verify(entityManager, never()).flush();
     }
 
     @Test
     @DisplayName("Should reject cancelling purchase order when already cancelled")
     void shouldRejectCancelWhenOrderIsAlreadyCancelled() {
-        PurchaseOrder cancelledOrder = buildPurchaseOrder(22L, PurchaseOrderStatus.CANCELLED);
+        PurchaseOrder cancelledOrder = buildPurchaseOrder(32L, PurchaseOrderStatus.CANCELLED);
         cancelledOrder.setCancellationReason("Already cancelled before");
         CancelPurchaseOrderRequest request = buildCancelRequest("Another reason");
 
-        when(purchaseOrderRepository.findDetailsById(22L)).thenReturn(Optional.of(cancelledOrder));
+        when(purchaseOrderRepository.findDetailsById(32L)).thenReturn(Optional.of(cancelledOrder));
 
         BusinessRuleException exception = assertThrows(
                 BusinessRuleException.class,
-                () -> purchaseOrderService.cancelPurchaseOrder(22L, request)
+                () -> purchaseOrderService.cancelPurchaseOrder(32L, request)
         );
 
         assertEquals("Purchase order is already cancelled", exception.getMessage());
 
-        verify(purchaseOrderRepository).findDetailsById(22L);
+        verify(purchaseOrderRepository).findDetailsById(32L);
         verify(entityManager, never()).flush();
     }
 
     @Test
     @DisplayName("Should reject cancelling purchase order when reason is blank")
     void shouldRejectCancelWhenReasonIsBlank() {
-        PurchaseOrder approvedOrder = buildPurchaseOrder(23L, PurchaseOrderStatus.APPROVED);
+        PurchaseOrder approvedOrder = buildPurchaseOrder(33L, PurchaseOrderStatus.APPROVED);
         CancelPurchaseOrderRequest request = buildCancelRequest("   ");
 
-        when(purchaseOrderRepository.findDetailsById(23L)).thenReturn(Optional.of(approvedOrder));
+        when(purchaseOrderRepository.findDetailsById(33L)).thenReturn(Optional.of(approvedOrder));
 
         BusinessRuleException exception = assertThrows(
                 BusinessRuleException.class,
-                () -> purchaseOrderService.cancelPurchaseOrder(23L, request)
+                () -> purchaseOrderService.cancelPurchaseOrder(33L, request)
         );
 
         assertEquals("Cancellation reason must not be blank", exception.getMessage());
 
-        verify(purchaseOrderRepository).findDetailsById(23L);
+        verify(purchaseOrderRepository).findDetailsById(33L);
         verify(entityManager, never()).flush();
     }
 
     @Test
     @DisplayName("Should reject deleting non-draft purchase order")
     void shouldRejectDeleteWhenOrderIsNotDraft() {
-        PurchaseOrder submittedOrder = buildPurchaseOrder(30L, PurchaseOrderStatus.SUBMITTED);
+        PurchaseOrder submittedOrder = buildPurchaseOrder(40L, PurchaseOrderStatus.SUBMITTED);
 
-        when(purchaseOrderRepository.findDetailsById(30L)).thenReturn(Optional.of(submittedOrder));
+        when(purchaseOrderRepository.findDetailsById(40L)).thenReturn(Optional.of(submittedOrder));
 
         BusinessRuleException exception = assertThrows(
                 BusinessRuleException.class,
-                () -> purchaseOrderService.deletePurchaseOrder(30L)
+                () -> purchaseOrderService.deletePurchaseOrder(40L)
         );
 
         assertEquals("Only DRAFT purchase orders can be edited or deleted", exception.getMessage());
 
-        verify(purchaseOrderRepository).findDetailsById(30L);
+        verify(purchaseOrderRepository).findDetailsById(40L);
         verify(purchaseOrderRepository, never()).delete(any());
     }
 
@@ -339,6 +520,21 @@ class PurchaseOrderServiceTest {
             List<PurchaseOrderLineRequest> lines
     ) {
         CreatePurchaseOrderRequest request = new CreatePurchaseOrderRequest();
+        request.setOrderNumber(orderNumber);
+        request.setSupplierId(supplierId);
+        request.setRequestedBy(requestedBy);
+        request.setOrderDate(LocalDate.of(2026, 4, 14));
+        request.setLines(lines);
+        return request;
+    }
+
+    private UpdatePurchaseOrderRequest buildUpdateRequest(
+            String orderNumber,
+            Long supplierId,
+            String requestedBy,
+            List<PurchaseOrderLineRequest> lines
+    ) {
+        UpdatePurchaseOrderRequest request = new UpdatePurchaseOrderRequest();
         request.setOrderNumber(orderNumber);
         request.setSupplierId(supplierId);
         request.setRequestedBy(requestedBy);

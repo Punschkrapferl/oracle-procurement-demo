@@ -53,6 +53,10 @@ export class PurchaseOrderListPageComponent implements OnInit {
     return purchaseOrder.id;
   }
 
+  canEdit(purchaseOrder: PurchaseOrderResponse): boolean {
+    return purchaseOrder.status === 'DRAFT';
+  }
+
   getStatusLabel(status: string): string {
     return status.replace(/_/g, ' ');
   }

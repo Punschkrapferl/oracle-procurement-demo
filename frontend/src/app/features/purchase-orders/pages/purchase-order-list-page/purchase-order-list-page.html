@@ -74,12 +74,23 @@
                   </span>
                 </td>
                 <td class="actions-cell">
-                  <a
-                    [routerLink]="['/purchase-orders', purchaseOrder.id]"
-                    class="secondary-action compact-action"
-                  >
-                    View
-                  </a>
+                  <div class="action-group">
+                    <a
+                      [routerLink]="['/purchase-orders', purchaseOrder.id]"
+                      class="secondary-action compact-action"
+                    >
+                      View
+                    </a>
+
+                    @if (canEdit(purchaseOrder)) {
+                      <a
+                        [routerLink]="['/purchase-orders', purchaseOrder.id, 'edit']"
+                        class="primary-action compact-action"
+                      >
+                        Edit
+                      </a>
+                    }
+                  </div>
                 </td>
               </tr>
             }

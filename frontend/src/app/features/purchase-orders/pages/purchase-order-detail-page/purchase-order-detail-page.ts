@@ -31,6 +31,7 @@ export class PurchaseOrderDetailPageComponent implements OnInit {
     reason: ['', [Validators.required, Validators.maxLength(500)]]
   });
 
+  readonly canEdit = computed(() => this.purchaseOrder()?.status === 'DRAFT');
   readonly canSubmit = computed(() => this.purchaseOrder()?.status === 'DRAFT');
   readonly canApprove = computed(() => this.purchaseOrder()?.status === 'SUBMITTED');
   readonly canCancel = computed(() => this.purchaseOrder()?.status === 'APPROVED');
@@ -84,8 +85,8 @@ export class PurchaseOrderDetailPageComponent implements OnInit {
       return;
     }
 
-    this.runWorkflowAction(() =>
-        this.purchaseOrderApiService.submitPurchaseOrder(currentPurchaseOrder.id),
+    this.runWorkflowAction(
+      () => this.purchaseOrderApiService.submitPurchaseOrder(currentPurchaseOrder.id),
       'Purchase order submitted successfully.'
     );
   }
@@ -97,8 +98,8 @@ export class PurchaseOrderDetailPageComponent implements OnInit {
       return;
     }
 
-    this.runWorkflowAction(() =>
-        this.purchaseOrderApiService.approvePurchaseOrder(currentPurchaseOrder.id),
+    this.runWorkflowAction(
+      () => this.purchaseOrderApiService.approvePurchaseOrder(currentPurchaseOrder.id),
       'Purchase order approved successfully.'
     );
   }

@@ -40,6 +40,14 @@
           </span>
         </div>
 
+        <div class="detail-actions">
+          @if (canEdit()) {
+            <a [routerLink]="['/purchase-orders', po.id, 'edit']" class="primary-action">
+              Edit Draft Purchase Order
+            </a>
+          }
+        </div>
+
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">ID</span>

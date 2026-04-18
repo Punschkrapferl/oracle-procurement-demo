@@ -90,6 +90,13 @@
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
+.form-field input:disabled,
+.form-field select:disabled {
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
 .input-invalid {
   border-color: #dc2626 !important;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
@@ -289,6 +296,11 @@
   border-color: #94a3b8;
 }
 
+.secondary-action:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 @media (max-width: 960px) {
   .line-grid {
     grid-template-columns: 1fr 1fr;
@@ -315,5 +327,11 @@
   .primary-action,
   .secondary-action {
     width: 100%;
+  }
+
+  .edit-context {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e3a8a;
   }
 }

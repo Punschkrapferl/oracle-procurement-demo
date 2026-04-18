@@ -7,6 +7,7 @@ import { CancelPurchaseOrderRequest } from '../models/cancel-purchase-order-requ
 import { CreatePurchaseOrderRequest } from '../models/create-purchase-order-request.model';
 import { PurchaseOrderResponse } from '../models/purchase-order-response.model';
 import { PurchaseOrderStatusSummaryResponse } from '../models/purchase-order-status-summary-response.model';
+import { UpdatePurchaseOrderRequest } from '../models/update-purchase-order-request.model';
 
 @Injectable({
   providedIn: 'root'
@@ -27,7 +28,7 @@ export class PurchaseOrderApiService {
     return this.http.post<PurchaseOrderResponse>(this.baseUrl, request);
   }
 
-  updatePurchaseOrder(id: number, request: CreatePurchaseOrderRequest): Observable<PurchaseOrderResponse> {
+  updatePurchaseOrder(id: number, request: UpdatePurchaseOrderRequest): Observable<PurchaseOrderResponse> {
     return this.http.put<PurchaseOrderResponse>(`${this.baseUrl}/${id}`, request);
   }
 

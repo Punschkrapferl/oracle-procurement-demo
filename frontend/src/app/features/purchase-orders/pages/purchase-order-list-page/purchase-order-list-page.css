@@ -131,6 +131,14 @@
   text-align: right;
 }
 
+.action-group {
+  display: inline-flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -179,5 +187,10 @@
   .actions-column,
   .actions-cell {
     text-align: left;
+  }
+
+  .action-group {
+    width: 100%;
+    justify-content: flex-start;
   }
 }

@@ -33,6 +33,10 @@ export const routes: Routes = [
     component: PurchaseOrderFormPageComponent
   },
   {
+    path: 'purchase-orders/:id/edit',
+    component: PurchaseOrderFormPageComponent
+  },
+  {
     path: 'purchase-orders/:id',
     component: PurchaseOrderDetailPageComponent
   },

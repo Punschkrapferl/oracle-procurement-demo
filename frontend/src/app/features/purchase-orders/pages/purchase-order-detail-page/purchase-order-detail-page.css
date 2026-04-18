@@ -57,6 +57,12 @@
   line-height: 1.5;
 }
 
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
 .state-card-error {
   border-color: #fecaca;
   background: #fff7f7;
@@ -331,7 +337,8 @@
 @media (max-width: 720px) {
   .page-header,
   .detail-card-header,
-  .workflow-actions {
+  .workflow-actions,
+  .detail-actions {
     flex-direction: column;
   }
 
