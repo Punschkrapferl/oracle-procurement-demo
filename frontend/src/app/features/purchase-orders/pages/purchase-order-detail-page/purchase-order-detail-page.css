@@ -127,6 +127,11 @@
   color: #0f172a;
 }
 
+.amount-cell {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;

@@ -18,6 +18,19 @@ export class PurchaseOrderListPageComponent implements OnInit {
   private readonly purchaseOrderApiService = inject(PurchaseOrderApiService);
   private readonly router = inject(Router);
 
+  private readonly currencyFormatter = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+
+  private readonly dateFormatter = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+
   readonly purchaseOrders = signal<PurchaseOrderResponse[]>([]);
   readonly isLoading = signal(false);
   readonly errorMessage = signal('');
@@ -142,10 +155,17 @@ export class PurchaseOrderListPageComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-GB', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
+    return this.currencyFormatter.format(amount);
+  }
+
+  formatDate(dateValue: string): string {
+    const parsedDate = new Date(`${dateValue}T00:00:00`);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return dateValue;
+    }
+
+    return this.dateFormatter.format(parsedDate);
   }
 
   getSupplierDisplayName(purchaseOrder: PurchaseOrderResponse): string {

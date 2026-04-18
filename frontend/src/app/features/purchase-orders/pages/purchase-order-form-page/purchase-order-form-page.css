@@ -204,7 +204,7 @@
 
 .line-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(140px, 1fr)) minmax(120px, 0.8fr);
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(140px, 1fr)) minmax(160px, 0.9fr);
   gap: 1rem;
   align-items: end;
 }
@@ -328,10 +328,10 @@
   .secondary-action {
     width: 100%;
   }
+}
 
-  .edit-context {
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    color: #1e3a8a;
-  }
+.edit-context {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
 }

@@ -87,17 +87,17 @@
 
           <div class="detail-item">
             <span class="detail-label">Order Date</span>
-            <strong>{{ po.orderDate }}</strong>
+            <strong>{{ formatDate(po.orderDate) }}</strong>
           </div>
 
           <div class="detail-item">
             <span class="detail-label">Created At</span>
-            <strong>{{ po.createdAt }}</strong>
+            <strong>{{ formatDateTime(po.createdAt) }}</strong>
           </div>
 
           <div class="detail-item">
             <span class="detail-label">Updated At</span>
-            <strong>{{ po.updatedAt }}</strong>
+            <strong>{{ formatDateTime(po.updatedAt) }}</strong>
           </div>
 
           <div class="detail-item detail-item-total">
@@ -112,7 +112,7 @@
             <p>{{ po.cancellationReason }}</p>
 
             @if (po.cancelledAt) {
-              <small>Cancelled at: {{ po.cancelledAt }}</small>
+              <small>Cancelled at: {{ formatDateTime(po.cancelledAt) }}</small>
             }
           </div>
         }
@@ -143,8 +143,8 @@
                   <td>{{ line.lineNumber }}</td>
                   <td>{{ line.itemDescription }}</td>
                   <td>{{ line.quantity }}</td>
-                  <td>{{ formatCurrency(line.unitPrice) }}</td>
-                  <td>{{ formatCurrency(line.lineTotal) }}</td>
+                  <td class="amount-cell">{{ formatCurrency(line.unitPrice) }}</td>
+                  <td class="amount-cell">{{ formatCurrency(line.lineTotal) }}</td>
                 </tr>
               }
             </tbody>

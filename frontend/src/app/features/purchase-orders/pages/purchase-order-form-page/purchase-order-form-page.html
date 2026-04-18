@@ -167,6 +167,10 @@
             [class.input-invalid]="orderDate.invalid && orderDate.touched"
           />
 
+          @if (orderDate.value) {
+            <div class="helper-message">Selected date: {{ formatDate(orderDate.value) }}</div>
+          }
+
           @if (orderDate.invalid && orderDate.touched) {
             <div class="validation-message">
               <span>Order date is required.</span>
@@ -252,23 +256,32 @@
                   <label [for]="'unitPrice-' + $index">Unit Price</label>
                   <input
                     [id]="'unitPrice-' + $index"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
+                    type="text"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    spellcheck="false"
                     formControlName="unitPrice"
+                    placeholder="0.01"
+                    (keydown)="preventCommaDecimal($event)"
+                    (paste)="handleUnitPricePaste($index, $event)"
+                    (input)="normalizeUnitPriceInput($index)"
                     [class.input-invalid]="lineGroup.controls['unitPrice'].invalid && lineGroup.controls['unitPrice'].touched"
                   />
 
                   @if (lineGroup.controls['unitPrice'].invalid && lineGroup.controls['unitPrice'].touched) {
                     <div class="validation-message">
-                      <span>Unit price must be greater than 0.</span>
+                      @if (lineGroup.controls['unitPrice'].errors?.['pattern']) {
+                        <span>Use digits and only "." as decimal separator.</span>
+                      } @else {
+                        <span>Unit price must be greater than 0.</span>
+                      }
                     </div>
                   }
                 </div>
 
                 <div class="line-total-box">
                   <span class="line-total-label">Line Total</span>
-                  <strong>{{ getLineTotal($index).toFixed(2) }}</strong>
+                  <strong>{{ getFormattedLineTotal($index) }}</strong>
                 </div>
               </div>
             </div>
@@ -277,7 +290,7 @@
 
         <div class="order-total">
           <span>Total Amount</span>
-          <strong>{{ getOrderTotal().toFixed(2) }}</strong>
+          <strong>{{ getFormattedOrderTotal() }}</strong>
         </div>
       </div>
 

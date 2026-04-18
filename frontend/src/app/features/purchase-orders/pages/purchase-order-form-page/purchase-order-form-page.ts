@@ -1,7 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormArray,
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 
@@ -28,6 +37,19 @@ export class PurchaseOrderFormPageComponent implements OnInit {
   private readonly supplierApiService = inject(SupplierApiService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
+  private readonly currencyFormatter = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+
+  private readonly dateFormatter = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
 
   readonly isLoadingSuppliers = signal(false);
   readonly supplierLoadErrorMessage = signal('');
@@ -223,8 +245,63 @@ export class PurchaseOrderFormPageComponent implements OnInit {
     return quantity * unitPrice;
   }
 
+  getFormattedLineTotal(index: number): string {
+    return this.formatCurrency(this.getLineTotal(index));
+  }
+
   getOrderTotal(): number {
     return this.lineFormGroups.reduce((total, _, index) => total + this.getLineTotal(index), 0);
+  }
+
+  getFormattedOrderTotal(): string {
+    return this.formatCurrency(this.getOrderTotal());
+  }
+
+  formatCurrency(amount: number): string {
+    return this.currencyFormatter.format(amount);
+  }
+
+  formatDate(dateValue: string): string {
+    const parsedDate = new Date(`${dateValue}T00:00:00`);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return dateValue;
+    }
+
+    return this.dateFormatter.format(parsedDate);
+  }
+
+  preventCommaDecimal(event: KeyboardEvent): void {
+    if (event.key === ',') {
+      event.preventDefault();
+    }
+  }
+
+  handleUnitPricePaste(index: number, event: ClipboardEvent): void {
+    const pastedText = event.clipboardData?.getData('text') ?? '';
+
+    if (!pastedText) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const sanitizedValue = this.sanitizeUnitPriceValue(pastedText);
+    this.lineFormGroups[index].controls['unitPrice'].setValue(sanitizedValue);
+    this.lineFormGroups[index].controls['unitPrice'].markAsTouched();
+    this.lineFormGroups[index].controls['unitPrice'].updateValueAndValidity();
+  }
+
+  normalizeUnitPriceInput(index: number): void {
+    const control = this.lineFormGroups[index].controls['unitPrice'];
+    const rawValue = String(control.value ?? '');
+    const sanitizedValue = this.sanitizeUnitPriceValue(rawValue);
+
+    if (rawValue !== sanitizedValue) {
+      control.setValue(sanitizedValue);
+    }
+
+    control.updateValueAndValidity();
   }
 
   onSubmit(): void {
@@ -341,8 +418,48 @@ export class PurchaseOrderFormPageComponent implements OnInit {
       lineNumber: [line?.lineNumber ?? lineNumber],
       itemDescription: [line?.itemDescription ?? '', [Validators.required, Validators.maxLength(255)]],
       quantity: [line?.quantity ?? 1, [Validators.required, Validators.min(1)]],
-      unitPrice: [line?.unitPrice ?? 0.01, [Validators.required, Validators.min(0.01)]]
+      unitPrice: [
+        this.formatInitialUnitPrice(line?.unitPrice),
+        [
+          Validators.required,
+          Validators.pattern(/^\d+(\.\d{1,2})?$/),
+          this.positiveDecimalValidator()
+        ]
+      ]
     });
+  }
+
+  private formatInitialUnitPrice(value?: number): string {
+    if (value === undefined || value === null) {
+      return '0.01';
+    }
+
+    return value.toFixed(2);
+  }
+
+  private sanitizeUnitPriceValue(value: string): string {
+    return value
+      .replace(/,/g, '.')
+      .replace(/[^0-9.]/g, '')
+      .replace(/(\..*)\./g, '$1');
+  }
+
+  private positiveDecimalValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const rawValue = String(control.value ?? '').trim();
+
+      if (rawValue.length === 0) {
+        return null;
+      }
+
+      const numericValue = Number(rawValue);
+
+      if (Number.isNaN(numericValue) || numericValue <= 0) {
+        return { positiveDecimal: true };
+      }
+
+      return null;
+    };
   }
 
   private recalculateLineNumbers(): void {

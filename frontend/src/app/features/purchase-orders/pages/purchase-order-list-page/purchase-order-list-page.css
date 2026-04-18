@@ -147,6 +147,11 @@
   color: #0f172a;
 }
 
+.amount-cell {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
 .actions-column,
 .actions-cell {
   text-align: right;

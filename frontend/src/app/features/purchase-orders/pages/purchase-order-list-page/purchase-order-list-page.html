@@ -81,8 +81,8 @@
                 <td>{{ purchaseOrder.orderNumber }}</td>
                 <td>{{ getSupplierDisplayName(purchaseOrder) }}</td>
                 <td>{{ purchaseOrder.requestedBy }}</td>
-                <td>{{ purchaseOrder.orderDate }}</td>
-                <td>{{ formatCurrency(purchaseOrder.totalAmount) }}</td>
+                <td>{{ formatDate(purchaseOrder.orderDate) }}</td>
+                <td class="amount-cell">{{ formatCurrency(purchaseOrder.totalAmount) }}</td>
                 <td>
                   <span
                     class="status-badge"

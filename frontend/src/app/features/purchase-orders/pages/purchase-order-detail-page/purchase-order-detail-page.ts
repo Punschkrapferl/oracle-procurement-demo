@@ -21,6 +21,27 @@ export class PurchaseOrderDetailPageComponent implements OnInit {
   private readonly purchaseOrderApiService = inject(PurchaseOrderApiService);
   private readonly formBuilder = inject(FormBuilder);
 
+  private readonly currencyFormatter = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+
+  private readonly dateFormatter = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+
+  private readonly dateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
   readonly purchaseOrder = signal<PurchaseOrderResponse | null>(null);
   readonly isLoading = signal(false);
   readonly errorMessage = signal('');
@@ -193,10 +214,31 @@ export class PurchaseOrderDetailPageComponent implements OnInit {
   }
 
   formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-GB', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
+    return this.currencyFormatter.format(amount);
+  }
+
+  formatDate(dateValue: string): string {
+    const parsedDate = new Date(`${dateValue}T00:00:00`);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return dateValue;
+    }
+
+    return this.dateFormatter.format(parsedDate);
+  }
+
+  formatDateTime(dateTimeValue: string | null): string {
+    if (!dateTimeValue) {
+      return '—';
+    }
+
+    const parsedDateTime = new Date(dateTimeValue);
+
+    if (Number.isNaN(parsedDateTime.getTime())) {
+      return dateTimeValue;
+    }
+
+    return this.dateTimeFormatter.format(parsedDateTime);
   }
 
   getSupplierDisplayName(purchaseOrder: PurchaseOrderResponse): string {
