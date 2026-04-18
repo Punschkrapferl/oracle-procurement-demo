@@ -148,6 +148,10 @@ export class PurchaseOrderListPageComponent implements OnInit {
     }).format(amount);
   }
 
+  getSupplierDisplayName(purchaseOrder: PurchaseOrderResponse): string {
+    return `${purchaseOrder.supplierName} (${purchaseOrder.supplierCode})`;
+  }
+
   private buildErrorMessage(error: HttpErrorResponse): string {
     if (error.status === 0) {
       return 'The frontend could not reach the backend. Make sure the Spring Boot application is running on http://localhost:8080.';

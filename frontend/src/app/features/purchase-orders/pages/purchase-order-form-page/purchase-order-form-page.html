@@ -77,7 +77,7 @@
         <strong>Editing draft {{ purchaseOrder.orderNumber }}</strong>
         <p>
           Purchase order ID {{ purchaseOrder.id }} · Current status {{ purchaseOrder.status }} ·
-          Supplier {{ purchaseOrder.supplierCode }}
+          Supplier {{ purchaseOrder.supplierName }} ({{ purchaseOrder.supplierCode }})
         </p>
       </div>
     }
@@ -136,7 +136,7 @@
             <option [ngValue]="0">Select a supplier</option>
             @for (supplier of activeSuppliers(); track supplier.id) {
               <option [ngValue]="supplier.id">
-                {{ supplier.supplierCode }} — {{ supplier.name }}
+                {{ supplier.name }} ({{ supplier.supplierCode }})
               </option>
             }
           </select>

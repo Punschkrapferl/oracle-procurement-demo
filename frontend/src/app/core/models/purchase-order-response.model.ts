@@ -5,6 +5,7 @@ export interface PurchaseOrderResponse {
   orderNumber: string;
   supplierId: number;
   supplierCode: string;
+  supplierName: string;
   status: string;
   requestedBy: string;
   orderDate: string;

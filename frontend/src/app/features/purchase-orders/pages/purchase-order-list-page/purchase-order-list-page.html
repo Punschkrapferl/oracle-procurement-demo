@@ -79,7 +79,7 @@
               <tr>
                 <td>{{ purchaseOrder.id }}</td>
                 <td>{{ purchaseOrder.orderNumber }}</td>
-                <td>{{ purchaseOrder.supplierCode }}</td>
+                <td>{{ getSupplierDisplayName(purchaseOrder) }}</td>
                 <td>{{ purchaseOrder.requestedBy }}</td>
                 <td>{{ purchaseOrder.orderDate }}</td>
                 <td>{{ formatCurrency(purchaseOrder.totalAmount) }}</td>

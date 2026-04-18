@@ -270,6 +270,7 @@ public class PurchaseOrderService {
                 purchaseOrder.getOrderNumber(),
                 purchaseOrder.getSupplier().getId(),
                 purchaseOrder.getSupplier().getSupplierCode(),
+                purchaseOrder.getSupplier().getName(),
                 purchaseOrder.getStatus(),
                 purchaseOrder.getRequestedBy(),
                 purchaseOrder.getOrderDate(),

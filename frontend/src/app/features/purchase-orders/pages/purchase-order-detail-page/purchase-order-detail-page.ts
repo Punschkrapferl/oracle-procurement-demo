@@ -199,6 +199,10 @@ export class PurchaseOrderDetailPageComponent implements OnInit {
     }).format(amount);
   }
 
+  getSupplierDisplayName(purchaseOrder: PurchaseOrderResponse): string {
+    return `${purchaseOrder.supplierName} (${purchaseOrder.supplierCode})`;
+  }
+
   private runWorkflowAction(
     action: () => ReturnType<PurchaseOrderApiService['submitPurchaseOrder']>,
     successMessage: string,
