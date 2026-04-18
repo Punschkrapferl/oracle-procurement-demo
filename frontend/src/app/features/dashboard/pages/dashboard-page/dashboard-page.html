@@ -1,17 +1,131 @@
 <section class="page">
   <div class="page-header">
     <h2>Dashboard</h2>
-    <p>
-      Overview page for procurement activity, workflow status, and operational summary.
-    </p>
+    <p>Procurement overview and purchase order lifecycle status.</p>
   </div>
 
-  <div class="placeholder-card">
-    <h3>Planned content</h3>
-    <ul>
-      <li>Purchase order status summary</li>
-      <li>Recent purchase orders</li>
-      <li>Quick operational overview</li>
-    </ul>
-  </div>
+  @if (isLoading()) {
+    <div class="state-card">
+      <h3>Loading dashboard...</h3>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="state-card state-card-error">
+      <h3>Could not load dashboard</h3>
+      <p>{{ errorMessage() }}</p>
+
+      <button class="secondary-action" type="button" (click)="loadDashboard()">Retry</button>
+    </div>
+  } @else {
+    <div class="summary-grid">
+      @for (item of summary(); track trackByStatus($index, item)) {
+        <div class="summary-card">
+          <span class="status-badge" [class]="getStatusClass(item.status)">
+            {{ getStatusLabel(item.status) }}
+          </span>
+
+          <strong class="summary-count">{{ item.count }}</strong>
+        </div>
+      }
+    </div>
+
+    <div class="total-card">
+      <span>Total Purchase Orders</span>
+      <strong>{{ totalCount() }}</strong>
+    </div>
+
+    <div class="dashboard-grid">
+      <section class="dashboard-section">
+        <div class="section-header">
+          <h3>Recent Purchase Orders</h3>
+          <p>Latest purchase orders across all statuses.</p>
+        </div>
+
+        @if (recentPurchaseOrders().length === 0) {
+          <div class="empty-card">
+            <p>No purchase orders available yet.</p>
+          </div>
+        } @else {
+          <div class="table-wrapper">
+            <table class="dashboard-table">
+              <thead>
+              <tr>
+                <th>Order Number</th>
+                <th>Supplier</th>
+                <th>Requested By</th>
+                <th>Status</th>
+                <th>Order Date</th>
+                <th>Total Amount</th>
+              </tr>
+              </thead>
+              <tbody>
+                @for (purchaseOrder of recentPurchaseOrders(); track trackByPurchaseOrder($index, purchaseOrder)) {
+                  <tr>
+                    <td class="cell-strong">{{ purchaseOrder.orderNumber }}</td>
+                    <td>{{ formatSupplier(purchaseOrder) }}</td>
+                    <td>{{ purchaseOrder.requestedBy }}</td>
+                    <td>
+                      <span class="status-badge" [class]="getStatusClass(purchaseOrder.status)">
+                        {{ getStatusLabel(purchaseOrder.status) }}
+                      </span>
+                    </td>
+                    <td>{{ purchaseOrder.orderDate | date:'dd.MM.yyyy' }}</td>
+                    <td>{{ purchaseOrder.totalAmount | currency:'EUR':'symbol':'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <section class="dashboard-section">
+        <div class="section-header">
+          <h3>Recent Cancelled Purchase Orders</h3>
+          <p>Most recent cancelled orders and their reasons.</p>
+        </div>
+
+        @if (recentCancelledPurchaseOrders().length === 0) {
+          <div class="empty-card">
+            <p>No cancelled purchase orders available yet.</p>
+          </div>
+        } @else {
+          <div class="cancelled-list">
+            @for (purchaseOrder of recentCancelledPurchaseOrders(); track trackByPurchaseOrder($index, purchaseOrder)) {
+              <article class="cancelled-card">
+                <div class="cancelled-card-header">
+                  <div>
+                    <h4>{{ purchaseOrder.orderNumber }}</h4>
+                    <p>{{ formatSupplier(purchaseOrder) }}</p>
+                  </div>
+
+                  <span class="status-badge status-cancelled">
+                    {{ getStatusLabel(purchaseOrder.status) }}
+                  </span>
+                </div>
+
+                <div class="cancelled-details">
+                  <div class="detail-row">
+                    <span class="detail-label">Requested By</span>
+                    <span class="detail-value">{{ purchaseOrder.requestedBy }}</span>
+                  </div>
+
+                  <div class="detail-row">
+                    <span class="detail-label">Cancelled At</span>
+                    <span class="detail-value">
+                      {{ purchaseOrder.cancelledAt ? (purchaseOrder.cancelledAt | date:'dd.MM.yyyy HH:mm') : '—' }}
+                    </span>
+                  </div>
+
+                  <div class="detail-row detail-row-reason">
+                    <span class="detail-label">Cancellation Reason</span>
+                    <span class="detail-value">{{ purchaseOrder.cancellationReason || '—' }}</span>
+                  </div>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    </div>
+  }
 </section>
