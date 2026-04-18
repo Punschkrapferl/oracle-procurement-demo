@@ -1,17 +1,79 @@
 <section class="page">
   <div class="page-header">
-    <h2>Suppliers</h2>
-    <p>
-      This page will show all suppliers and later allow quick navigation into supplier-related workflows.
-    </p>
+    <div>
+      <h2>Suppliers</h2>
+      <p>
+        View all suppliers that can be used in the procurement workflow.
+      </p>
+    </div>
+
+    <a routerLink="/suppliers/new" class="primary-action">
+      Create Supplier
+    </a>
   </div>
 
-  <div class="placeholder-card">
-    <h3>Planned content</h3>
-    <ul>
-      <li>Supplier table</li>
-      <li>Create supplier action</li>
-      <li>Empty state and loading state</li>
-    </ul>
-  </div>
+  @if (isLoading()) {
+    <div class="state-card">
+      <h3>Loading suppliers...</h3>
+      <p>The frontend is requesting supplier data from the backend.</p>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="state-card state-card-error">
+      <h3>Could not load suppliers</h3>
+      <p>{{ errorMessage() }}</p>
+
+      <button type="button" class="secondary-action" (click)="loadSuppliers()">
+        Try Again
+      </button>
+    </div>
+  } @else if (suppliers().length === 0) {
+    <div class="state-card">
+      <h3>No suppliers found</h3>
+      <p>Create the first supplier to start building purchase orders.</p>
+
+      <a routerLink="/suppliers/new" class="primary-action">
+        Create First Supplier
+      </a>
+    </div>
+  } @else {
+    <div class="table-card">
+      <div class="table-card-header">
+        <h3>Supplier Directory</h3>
+        <p>{{ suppliers().length }} supplier(s) loaded from the backend.</p>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="supplier-table">
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Supplier Code</th>
+            <th>Name</th>
+            <th>Contact Email</th>
+            <th>Status</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (supplier of suppliers(); track trackBySupplierId($index, supplier)) {
+              <tr>
+                <td>{{ supplier.id }}</td>
+                <td>{{ supplier.supplierCode }}</td>
+                <td>{{ supplier.name }}</td>
+                <td>{{ supplier.contactEmail }}</td>
+                <td>
+                  <span
+                    class="status-badge"
+                    [class.status-active]="supplier.active"
+                    [class.status-inactive]="!supplier.active"
+                  >
+                    {{ supplier.active ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
 </section>
