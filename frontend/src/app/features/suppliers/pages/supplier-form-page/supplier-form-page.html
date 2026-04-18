@@ -1,17 +1,116 @@
 <section class="page">
   <div class="page-header">
-    <h2>New Supplier</h2>
-    <p>
-      This page will contain the supplier creation form with validation and backend integration.
-    </p>
+    <div>
+      <h2>New Supplier</h2>
+      <p>
+        Create a supplier that can later be used in the procurement workflow.
+      </p>
+    </div>
+
+    <a routerLink="/suppliers" class="secondary-action">
+      Back to Suppliers
+    </a>
   </div>
 
-  <div class="placeholder-card">
-    <h3>Planned content</h3>
-    <ul>
-      <li>Reactive supplier form</li>
-      <li>Validation messages</li>
-      <li>Success and error feedback</li>
-    </ul>
+  <div class="form-card">
+    <div class="form-card-header">
+      <h3>Supplier Details</h3>
+      <p>Fill in the supplier information and submit it to the backend.</p>
+    </div>
+
+    @if (submitErrorMessage()) {
+      <div class="alert alert-error" role="alert">
+        <strong>Could not create supplier.</strong>
+        <p>{{ submitErrorMessage() }}</p>
+      </div>
+    }
+
+    <form [formGroup]="supplierForm" (ngSubmit)="onSubmit()" class="supplier-form" novalidate>
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="supplierCode">Supplier Code</label>
+          <input
+            id="supplierCode"
+            type="text"
+            formControlName="supplierCode"
+            placeholder="SUP-1001"
+            [class.input-invalid]="supplierCode.invalid && supplierCode.touched"
+          />
+
+          @if (supplierCode.invalid && supplierCode.touched) {
+            <div class="validation-message">
+              @if (supplierCode.errors?.['required']) {
+                <span>Supplier code is required.</span>
+              } @else if (supplierCode.errors?.['maxlength']) {
+                <span>Supplier code must be at most 50 characters long.</span>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="name">Supplier Name</label>
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            placeholder="Acme Industrial Supplies"
+            [class.input-invalid]="name.invalid && name.touched"
+          />
+
+          @if (name.invalid && name.touched) {
+            <div class="validation-message">
+              @if (name.errors?.['required']) {
+                <span>Supplier name is required.</span>
+              } @else if (name.errors?.['maxlength']) {
+                <span>Supplier name must be at most 150 characters long.</span>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="form-field form-field-full">
+          <label for="contactEmail">Contact Email</label>
+          <input
+            id="contactEmail"
+            type="email"
+            formControlName="contactEmail"
+            placeholder="orders@acme-industrial.com"
+            [class.input-invalid]="contactEmail.invalid && contactEmail.touched"
+          />
+
+          @if (contactEmail.invalid && contactEmail.touched) {
+            <div class="validation-message">
+              @if (contactEmail.errors?.['required']) {
+                <span>Contact email is required.</span>
+              } @else if (contactEmail.errors?.['email']) {
+                <span>Please enter a valid email address.</span>
+              } @else if (contactEmail.errors?.['maxlength']) {
+                <span>Contact email must be at most 150 characters long.</span>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="form-field form-field-full">
+          <label class="checkbox-field" for="active">
+            <input id="active" type="checkbox" formControlName="active" />
+            <span>Supplier is active and can be used for new purchase orders</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a routerLink="/suppliers" class="secondary-action">Cancel</a>
+
+        <button type="submit" class="primary-action" [disabled]="isSubmitting()">
+          @if (isSubmitting()) {
+            <span>Creating Supplier...</span>
+          } @else {
+            <span>Create Supplier</span>
+          }
+        </button>
+      </div>
+    </form>
   </div>
 </section>
