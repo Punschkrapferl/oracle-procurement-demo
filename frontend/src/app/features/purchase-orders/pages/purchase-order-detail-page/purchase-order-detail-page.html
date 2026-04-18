@@ -1,17 +1,223 @@
 <section class="page">
   <div class="page-header">
-    <h2>Purchase Order Detail</h2>
-    <p>
-      This page will display one purchase order, its line items, current status, and workflow actions.
-    </p>
+    <div>
+      <h2>Purchase Order Detail</h2>
+      <p>
+        Review one purchase order, its line items, current status, and available workflow actions.
+      </p>
+    </div>
+
+    <a routerLink="/purchase-orders" class="secondary-action">
+      Back to Purchase Orders
+    </a>
   </div>
 
-  <div class="placeholder-card">
-    <h3>Planned content</h3>
-    <ul>
-      <li>Purchase order metadata</li>
-      <li>Line item table</li>
-      <li>Submit, approve, and cancel actions</li>
-    </ul>
-  </div>
+  @if (isLoading()) {
+    <div class="state-card">
+      <h3>Loading purchase order...</h3>
+      <p>The frontend is requesting purchase order detail data from the backend.</p>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="state-card state-card-error">
+      <h3>Could not load purchase order</h3>
+      <p>{{ errorMessage() }}</p>
+
+      <button type="button" class="secondary-action" (click)="loadPurchaseOrder()">
+        Try Again
+      </button>
+    </div>
+  } @else if (purchaseOrder(); as po) {
+    <div class="detail-layout">
+      <div class="detail-card">
+        <div class="detail-card-header">
+          <div>
+            <h3>{{ po.orderNumber }}</h3>
+            <p>Purchase order metadata and current lifecycle status.</p>
+          </div>
+
+          <span class="status-badge" [class]="getStatusClass(po.status)">
+            {{ getStatusLabel(po.status) }}
+          </span>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">ID</span>
+            <strong>{{ po.id }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">Supplier</span>
+            <strong>{{ po.supplierCode }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">Requested By</span>
+            <strong>{{ po.requestedBy }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">Order Date</span>
+            <strong>{{ po.orderDate }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">Created At</span>
+            <strong>{{ po.createdAt }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">Updated At</span>
+            <strong>{{ po.updatedAt }}</strong>
+          </div>
+
+          <div class="detail-item detail-item-total">
+            <span class="detail-label">Total Amount</span>
+            <strong>{{ formatCurrency(po.totalAmount) }}</strong>
+          </div>
+        </div>
+
+        @if (po.cancellationReason) {
+          <div class="info-panel info-panel-cancelled">
+            <strong>Cancellation Reason</strong>
+            <p>{{ po.cancellationReason }}</p>
+
+            @if (po.cancelledAt) {
+              <small>Cancelled at: {{ po.cancelledAt }}</small>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="detail-card">
+        <div class="detail-card-header">
+          <div>
+            <h3>Line Items</h3>
+            <p>{{ po.lines.length }} line item(s) loaded from the backend.</p>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="line-table">
+            <thead>
+            <tr>
+              <th>Line</th>
+              <th>Item Description</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Line Total</th>
+            </tr>
+            </thead>
+            <tbody>
+              @for (line of po.lines; track line.id) {
+                <tr>
+                  <td>{{ line.lineNumber }}</td>
+                  <td>{{ line.itemDescription }}</td>
+                  <td>{{ line.quantity }}</td>
+                  <td>{{ formatCurrency(line.unitPrice) }}</td>
+                  <td>{{ formatCurrency(line.lineTotal) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="detail-card">
+        <div class="detail-card-header">
+          <div>
+            <h3>Workflow Actions</h3>
+            <p>Progress the purchase order through the lifecycle from this page.</p>
+          </div>
+        </div>
+
+        @if (workflowSuccessMessage()) {
+          <div class="alert alert-success" role="alert">
+            <p>{{ workflowSuccessMessage() }}</p>
+          </div>
+        }
+
+        @if (workflowErrorMessage()) {
+          <div class="alert alert-error" role="alert">
+            <p>{{ workflowErrorMessage() }}</p>
+          </div>
+        }
+
+        <div class="workflow-actions">
+          @if (canSubmit()) {
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="isWorkflowSubmitting()"
+              (click)="submitPurchaseOrder()"
+            >
+              @if (isWorkflowSubmitting()) {
+                <span>Submitting...</span>
+              } @else {
+                <span>Submit Purchase Order</span>
+              }
+            </button>
+          }
+
+          @if (canApprove()) {
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="isWorkflowSubmitting()"
+              (click)="approvePurchaseOrder()"
+            >
+              @if (isWorkflowSubmitting()) {
+                <span>Approving...</span>
+              } @else {
+                <span>Approve Purchase Order</span>
+              }
+            </button>
+          }
+        </div>
+
+        @if (canCancel()) {
+          <form [formGroup]="cancelForm" class="cancel-form" (ngSubmit)="cancelPurchaseOrder()" novalidate>
+            <div class="form-field">
+              <label for="cancelReason">Cancellation Reason</label>
+              <textarea
+                id="cancelReason"
+                formControlName="reason"
+                rows="4"
+                placeholder="Explain why the approved purchase order must be cancelled"
+                [class.input-invalid]="cancelReason.invalid && cancelReason.touched"
+              ></textarea>
+
+              @if (cancelReason.invalid && cancelReason.touched) {
+                <div class="validation-message">
+                  @if (cancelReason.errors?.['required']) {
+                    <span>Cancellation reason is required.</span>
+                  } @else if (cancelReason.errors?.['maxlength']) {
+                    <span>Cancellation reason must be at most 500 characters long.</span>
+                  }
+                </div>
+              }
+            </div>
+
+            <button
+              type="submit"
+              class="danger-action"
+              [disabled]="isWorkflowSubmitting()"
+            >
+              @if (isWorkflowSubmitting()) {
+                <span>Cancelling...</span>
+              } @else {
+                <span>Cancel Purchase Order</span>
+              }
+            </button>
+          </form>
+        }
+
+        @if (!canSubmit() && !canApprove() && !canCancel()) {
+          <div class="info-panel">
+            <p>No workflow action is currently available for this purchase order status.</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
 </section>

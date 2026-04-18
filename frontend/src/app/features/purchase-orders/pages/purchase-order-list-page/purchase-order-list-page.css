@@ -4,6 +4,13 @@
   gap: 1.5rem;
 }
 
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
 .page-header h2 {
   margin: 0 0 0.5rem;
   font-size: 1.75rem;
@@ -15,22 +22,162 @@
   line-height: 1.5;
 }
 
-.placeholder-card {
+.primary-action,
+.secondary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  padding: 0.8rem 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.primary-action {
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #2563eb;
+}
+
+.primary-action:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.secondary-action {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.secondary-action:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.compact-action {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+.state-card,
+.table-card {
   background: #ffffff;
   border: 1px solid #d9e0e7;
-  border-radius: 0.75rem;
+  border-radius: 0.85rem;
   padding: 1.5rem;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
-.placeholder-card h3 {
+.state-card h3,
+.table-card-header h3 {
   margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.state-card p,
+.table-card-header p {
+  margin-top: 0;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.state-card-error {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.table-card-header {
   margin-bottom: 1rem;
 }
 
-.placeholder-card ul {
-  margin: 0;
-  padding-left: 1.25rem;
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.purchase-order-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.purchase-order-table th,
+.purchase-order-table td {
+  text-align: left;
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.purchase-order-table th {
+  font-size: 0.9rem;
+  font-weight: 700;
   color: #334155;
-  line-height: 1.6;
+  background: #f8fafc;
+}
+
+.purchase-order-table td {
+  color: #0f172a;
+}
+
+.actions-column,
+.actions-cell {
+  text-align: right;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.status-draft {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.status-submitted {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-default {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+@media (max-width: 720px) {
+  .page-header {
+    flex-direction: column;
+  }
+
+  .primary-action,
+  .secondary-action {
+    width: 100%;
+  }
+
+  .actions-column,
+  .actions-cell {
+    text-align: left;
+  }
 }

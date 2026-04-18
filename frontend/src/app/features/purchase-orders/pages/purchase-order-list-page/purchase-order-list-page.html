@@ -1,17 +1,91 @@
 <section class="page">
   <div class="page-header">
-    <h2>Purchase Orders</h2>
-    <p>
-      This page will show purchase orders, workflow state, and links to detail views.
-    </p>
+    <div>
+      <h2>Purchase Orders</h2>
+      <p>
+        Review purchase orders created in the procurement workflow and open a detail view for each one.
+      </p>
+    </div>
+
+    <a routerLink="/purchase-orders/new" class="primary-action">
+      Create Purchase Order
+    </a>
   </div>
 
-  <div class="placeholder-card">
-    <h3>Planned content</h3>
-    <ul>
-      <li>Purchase order table</li>
-      <li>Status badges</li>
-      <li>Navigation to detail pages</li>
-    </ul>
-  </div>
+  @if (isLoading()) {
+    <div class="state-card">
+      <h3>Loading purchase orders...</h3>
+      <p>The frontend is requesting purchase order data from the backend.</p>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="state-card state-card-error">
+      <h3>Could not load purchase orders</h3>
+      <p>{{ errorMessage() }}</p>
+
+      <button type="button" class="secondary-action" (click)="loadPurchaseOrders()">
+        Try Again
+      </button>
+    </div>
+  } @else if (purchaseOrders().length === 0) {
+    <div class="state-card">
+      <h3>No purchase orders found</h3>
+      <p>Create the first purchase order to begin the procurement workflow.</p>
+
+      <a routerLink="/purchase-orders/new" class="primary-action">
+        Create First Purchase Order
+      </a>
+    </div>
+  } @else {
+    <div class="table-card">
+      <div class="table-card-header">
+        <h3>Purchase Order Directory</h3>
+        <p>{{ purchaseOrders().length }} purchase order(s) loaded from the backend.</p>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="purchase-order-table">
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Order Number</th>
+            <th>Supplier</th>
+            <th>Requested By</th>
+            <th>Order Date</th>
+            <th>Total Amount</th>
+            <th>Status</th>
+            <th class="actions-column">Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (purchaseOrder of purchaseOrders(); track trackByPurchaseOrderId($index, purchaseOrder)) {
+              <tr>
+                <td>{{ purchaseOrder.id }}</td>
+                <td>{{ purchaseOrder.orderNumber }}</td>
+                <td>{{ purchaseOrder.supplierCode }}</td>
+                <td>{{ purchaseOrder.requestedBy }}</td>
+                <td>{{ purchaseOrder.orderDate }}</td>
+                <td>{{ formatCurrency(purchaseOrder.totalAmount) }}</td>
+                <td>
+                  <span
+                    class="status-badge"
+                    [class]="getStatusClass(purchaseOrder.status)"
+                  >
+                    {{ getStatusLabel(purchaseOrder.status) }}
+                  </span>
+                </td>
+                <td class="actions-cell">
+                  <a
+                    [routerLink]="['/purchase-orders', purchaseOrder.id]"
+                    class="secondary-action compact-action"
+                  >
+                    View
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
 </section>

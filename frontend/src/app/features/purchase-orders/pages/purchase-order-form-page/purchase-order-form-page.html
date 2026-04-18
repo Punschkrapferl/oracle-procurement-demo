@@ -1,17 +1,249 @@
 <section class="page">
   <div class="page-header">
-    <h2>New Purchase Order</h2>
-    <p>
-      This page will contain the purchase order creation form, including dynamic line items.
-    </p>
+    <div>
+      <h2>New Purchase Order</h2>
+      <p>
+        Create a draft purchase order and send it to the backend with real supplier data and line items.
+      </p>
+    </div>
+
+    <a routerLink="/purchase-orders" class="secondary-action">
+      Back to Purchase Orders
+    </a>
   </div>
 
-  <div class="placeholder-card">
-    <h3>Planned content</h3>
-    <ul>
-      <li>Purchase order creation form</li>
-      <li>Dynamic line item rows</li>
-      <li>Validation and request submission</li>
-    </ul>
+  <div class="form-card">
+    <div class="form-card-header">
+      <h3>Purchase Order Details</h3>
+      <p>Fill in the header fields, select a supplier, and add at least one line item.</p>
+    </div>
+
+    @if (supplierLoadErrorMessage()) {
+      <div class="alert alert-error" role="alert">
+        <strong>Could not load suppliers.</strong>
+        <p>{{ supplierLoadErrorMessage() }}</p>
+        <button type="button" class="secondary-action inline-action" (click)="loadSuppliers()">
+          Try Again
+        </button>
+      </div>
+    }
+
+    @if (submitErrorMessage()) {
+      <div class="alert alert-error" role="alert">
+        <strong>Could not create purchase order.</strong>
+        <p>{{ submitErrorMessage() }}</p>
+      </div>
+    }
+
+    <form [formGroup]="purchaseOrderForm" (ngSubmit)="onSubmit()" class="purchase-order-form" novalidate>
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="orderNumber">Order Number</label>
+          <input
+            id="orderNumber"
+            type="text"
+            formControlName="orderNumber"
+            placeholder="PO-2026-1001"
+            [class.input-invalid]="orderNumber.invalid && orderNumber.touched"
+          />
+
+          @if (orderNumber.invalid && orderNumber.touched) {
+            <div class="validation-message">
+              @if (orderNumber.errors?.['required']) {
+                <span>Order number is required.</span>
+              } @else if (orderNumber.errors?.['maxlength']) {
+                <span>Order number must be at most 50 characters long.</span>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="requestedBy">Requested By</label>
+          <input
+            id="requestedBy"
+            type="text"
+            formControlName="requestedBy"
+            placeholder="Punschkrapferl"
+            [class.input-invalid]="requestedBy.invalid && requestedBy.touched"
+          />
+
+          @if (requestedBy.invalid && requestedBy.touched) {
+            <div class="validation-message">
+              @if (requestedBy.errors?.['required']) {
+                <span>Requester name is required.</span>
+              } @else if (requestedBy.errors?.['maxlength']) {
+                <span>Requester name must be at most 100 characters long.</span>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="supplierId">Supplier</label>
+          <select
+            id="supplierId"
+            formControlName="supplierId"
+            [class.input-invalid]="supplierId.invalid && supplierId.touched"
+          >
+            <option [ngValue]="0">Select a supplier</option>
+            @for (supplier of activeSuppliers(); track supplier.id) {
+              <option [ngValue]="supplier.id">
+                {{ supplier.supplierCode }} — {{ supplier.name }}
+              </option>
+            }
+          </select>
+
+          @if (isLoadingSuppliers()) {
+            <div class="helper-message">Loading suppliers...</div>
+          }
+
+          @if (!isLoadingSuppliers() && activeSuppliers().length === 0 && !supplierLoadErrorMessage()) {
+            <div class="helper-message">
+              No active suppliers are available. Create one first in the supplier section.
+            </div>
+          }
+
+          @if (supplierId.invalid && supplierId.touched) {
+            <div class="validation-message">
+              <span>Please select a supplier.</span>
+            </div>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="orderDate">Order Date</label>
+          <input
+            id="orderDate"
+            type="date"
+            formControlName="orderDate"
+            [class.input-invalid]="orderDate.invalid && orderDate.touched"
+          />
+
+          @if (orderDate.invalid && orderDate.touched) {
+            <div class="validation-message">
+              <span>Order date is required.</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="line-items-card">
+        <div class="line-items-header">
+          <div>
+            <h3>Line Items</h3>
+            <p>Add at least one item to the purchase order.</p>
+          </div>
+
+          <button type="button" class="secondary-action" (click)="addLine()">
+            Add Line
+          </button>
+        </div>
+
+        <div formArrayName="lines" class="line-items-list">
+          @for (lineGroup of lines.controls; track trackByLineIndex($index)) {
+            <div class="line-item-row" [formGroupName]="$index">
+              <div class="line-item-topbar">
+                <h4>Line {{ lineGroup.get('lineNumber')?.value }}</h4>
+
+                <button
+                  type="button"
+                  class="remove-line-button"
+                  (click)="removeLine($index)"
+                  [disabled]="lines.length === 1"
+                >
+                  Remove
+                </button>
+              </div>
+
+              <div class="line-grid">
+                <div class="form-field line-description">
+                  <label [for]="'itemDescription-' + $index">Item Description</label>
+                  <input
+                    [id]="'itemDescription-' + $index"
+                    type="text"
+                    formControlName="itemDescription"
+                    placeholder="Industrial safety gloves"
+                    [class.input-invalid]="lineGroup.get('itemDescription')?.invalid && lineGroup.get('itemDescription')?.touched"
+                  />
+
+                  @if (lineGroup.get('itemDescription')?.invalid && lineGroup.get('itemDescription')?.touched) {
+                    <div class="validation-message">
+                      @if (lineGroup.get('itemDescription')?.errors?.['required']) {
+                        <span>Item description is required.</span>
+                      } @else if (lineGroup.get('itemDescription')?.errors?.['maxlength']) {
+                        <span>Item description is too long.</span>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div class="form-field">
+                  <label [for]="'quantity-' + $index">Quantity</label>
+                  <input
+                    [id]="'quantity-' + $index"
+                    type="number"
+                    min="1"
+                    step="1"
+                    formControlName="quantity"
+                    [class.input-invalid]="lineGroup.get('quantity')?.invalid && lineGroup.get('quantity')?.touched"
+                  />
+
+                  @if (lineGroup.get('quantity')?.invalid && lineGroup.get('quantity')?.touched) {
+                    <div class="validation-message">
+                      <span>Quantity must be at least 1.</span>
+                    </div>
+                  }
+                </div>
+
+                <div class="form-field">
+                  <label [for]="'unitPrice-' + $index">Unit Price</label>
+                  <input
+                    [id]="'unitPrice-' + $index"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    formControlName="unitPrice"
+                    [class.input-invalid]="lineGroup.get('unitPrice')?.invalid && lineGroup.get('unitPrice')?.touched"
+                  />
+
+                  @if (lineGroup.get('unitPrice')?.invalid && lineGroup.get('unitPrice')?.touched) {
+                    <div class="validation-message">
+                      <span>Unit price must be greater than 0.</span>
+                    </div>
+                  }
+                </div>
+
+                <div class="line-total-box">
+                  <span class="line-total-label">Line Total</span>
+                  <strong>{{ getLineTotal($index).toFixed(2) }}</strong>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="order-total">
+          <span>Total Amount</span>
+          <strong>{{ getOrderTotal().toFixed(2) }}</strong>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a routerLink="/purchase-orders" class="secondary-action">Cancel</a>
+
+        <button
+          type="submit"
+          class="primary-action"
+          [disabled]="isSubmitting() || isLoadingSuppliers() || activeSuppliers().length === 0"
+        >
+          @if (isSubmitting()) {
+            <span>Creating Purchase Order...</span>
+          } @else {
+            <span>Create Purchase Order</span>
+          }
+        </button>
+      </div>
+    </form>
   </div>
 </section>
