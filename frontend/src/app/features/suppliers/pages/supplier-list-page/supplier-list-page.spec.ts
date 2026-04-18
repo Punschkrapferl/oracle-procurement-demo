@@ -7,10 +7,14 @@ import { SupplierApiService } from '../../../../core/api/supplier-api.service';
 import { SupplierResponse } from '../../../../core/models/supplier-response.model';
 import { SupplierListPageComponent } from './supplier-list-page';
 
+type SupplierApiServiceSpy = {
+  getAllSuppliers: jasmine.Spy;
+};
+
 describe('SupplierListPageComponent', () => {
   let fixture: ComponentFixture<SupplierListPageComponent>;
   let component: SupplierListPageComponent;
-  let supplierApiServiceSpy: jasmine.SpyObj<SupplierApiService>;
+  let supplierApiServiceSpy: SupplierApiServiceSpy;
 
   const suppliersResponse: SupplierResponse[] = [
     {
@@ -30,11 +34,9 @@ describe('SupplierListPageComponent', () => {
   ];
 
   beforeEach(async () => {
-    // Mock the API so the component test stays focused on component behavior.
-    supplierApiServiceSpy = jasmine.createSpyObj<SupplierApiService>(
-      'SupplierApiService',
-      ['getAllSuppliers']
-    );
+    supplierApiServiceSpy = jasmine.createSpyObj('SupplierApiService', [
+      'getAllSuppliers'
+    ]) as unknown as SupplierApiServiceSpy;
 
     await TestBed.configureTestingModule({
       imports: [SupplierListPageComponent],
@@ -135,8 +137,7 @@ describe('SupplierListPageComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    const retryButton = compiled.querySelector('button');
+    const retryButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement | null;
 
     expect(retryButton?.textContent).toContain('Try Again');
   });
@@ -146,8 +147,6 @@ describe('SupplierListPageComponent', () => {
 
     createComponent();
 
-    const trackedValue = component.trackBySupplierId(0, suppliersResponse[0]);
-
-    expect(trackedValue).toBe(1);
+    expect(component.trackBySupplierId(0, suppliersResponse[0])).toBe(1);
   });
 });

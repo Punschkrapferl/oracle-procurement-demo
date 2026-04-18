@@ -27,12 +27,8 @@ describe('SupplierApiService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        // Real HttpClient is needed by the service.
         provideHttpClient(),
-
-        // Testing backend lets us intercept and assert HTTP requests.
         provideHttpClientTesting(),
-
         SupplierApiService
       ]
     });
@@ -42,7 +38,6 @@ describe('SupplierApiService', () => {
   });
 
   afterEach(() => {
-    // Ensures no unexpected HTTP request remains unverified.
     httpTestingController.verify();
   });
 

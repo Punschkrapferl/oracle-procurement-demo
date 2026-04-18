@@ -9,11 +9,21 @@ import { PurchaseOrderResponse } from '../../../../core/models/purchase-order-re
 import { SupplierResponse } from '../../../../core/models/supplier-response.model';
 import { PurchaseOrderFormPageComponent } from './purchase-order-form-page';
 
+type PurchaseOrderApiServiceSpy = {
+  getPurchaseOrderById: jasmine.Spy;
+  createPurchaseOrder: jasmine.Spy;
+  updatePurchaseOrder: jasmine.Spy;
+};
+
+type SupplierApiServiceSpy = {
+  getAllSuppliers: jasmine.Spy;
+};
+
 describe('PurchaseOrderFormPageComponent', () => {
   let fixture: ComponentFixture<PurchaseOrderFormPageComponent>;
   let component: PurchaseOrderFormPageComponent;
-  let purchaseOrderApiServiceSpy: jasmine.SpyObj<PurchaseOrderApiService>;
-  let supplierApiServiceSpy: jasmine.SpyObj<SupplierApiService>;
+  let purchaseOrderApiServiceSpy: PurchaseOrderApiServiceSpy;
+  let supplierApiServiceSpy: SupplierApiServiceSpy;
   let router: Router;
 
   const suppliersResponse: SupplierResponse[] = [
@@ -40,7 +50,7 @@ describe('PurchaseOrderFormPageComponent', () => {
     supplierCode: 'SUP-1001',
     supplierName: 'Acme',
     status: 'DRAFT',
-    requestedBy: 'Abood',
+    requestedBy: 'Punschkrapferl',
     orderDate: '2026-04-18',
     totalAmount: 200,
     createdAt: '2026-04-18T10:00:00',
@@ -59,16 +69,16 @@ describe('PurchaseOrderFormPageComponent', () => {
     ]
   };
 
-  beforeEach(async () => {
-    purchaseOrderApiServiceSpy = jasmine.createSpyObj<PurchaseOrderApiService>(
-      'PurchaseOrderApiService',
-      ['getPurchaseOrderById', 'createPurchaseOrder', 'updatePurchaseOrder']
-    );
+  async function configureTestingModule(routeParams: Record<string, string> = {}): Promise<void> {
+    purchaseOrderApiServiceSpy = jasmine.createSpyObj('PurchaseOrderApiService', [
+      'getPurchaseOrderById',
+      'createPurchaseOrder',
+      'updatePurchaseOrder'
+    ]) as unknown as PurchaseOrderApiServiceSpy;
 
-    supplierApiServiceSpy = jasmine.createSpyObj<SupplierApiService>(
-      'SupplierApiService',
-      ['getAllSuppliers']
-    );
+    supplierApiServiceSpy = jasmine.createSpyObj('SupplierApiService', [
+      'getAllSuppliers'
+    ]) as unknown as SupplierApiServiceSpy;
 
     await TestBed.configureTestingModule({
       imports: [PurchaseOrderFormPageComponent],
@@ -86,7 +96,7 @@ describe('PurchaseOrderFormPageComponent', () => {
           provide: ActivatedRoute,
           useValue: {
             snapshot: {
-              paramMap: convertToParamMap({})
+              paramMap: convertToParamMap(routeParams)
             }
           }
         }
@@ -95,6 +105,10 @@ describe('PurchaseOrderFormPageComponent', () => {
 
     router = TestBed.inject(Router);
     spyOn(router, 'navigate').and.resolveTo(true);
+  }
+
+  beforeEach(async () => {
+    await configureTestingModule();
   });
 
   function createComponent(): void {
@@ -202,7 +216,7 @@ describe('PurchaseOrderFormPageComponent', () => {
     component.purchaseOrderForm.patchValue({
       orderNumber: '  PO-2026-1055  ',
       supplierId: 1,
-      requestedBy: '  Abood  ',
+      requestedBy: '  Punschkrapferl  ',
       orderDate: '2026-04-18'
     });
 
@@ -217,7 +231,7 @@ describe('PurchaseOrderFormPageComponent', () => {
     expect(purchaseOrderApiServiceSpy.createPurchaseOrder).toHaveBeenCalledWith({
       orderNumber: 'PO-2026-1055',
       supplierId: 1,
-      requestedBy: 'Abood',
+      requestedBy: 'Punschkrapferl',
       orderDate: '2026-04-18',
       lines: [
         {
@@ -234,48 +248,12 @@ describe('PurchaseOrderFormPageComponent', () => {
 
   it('should load a purchase order in edit mode and populate the form', async () => {
     TestBed.resetTestingModule();
-
-    purchaseOrderApiServiceSpy = jasmine.createSpyObj<PurchaseOrderApiService>(
-      'PurchaseOrderApiService',
-      ['getPurchaseOrderById', 'createPurchaseOrder', 'updatePurchaseOrder']
-    );
-
-    supplierApiServiceSpy = jasmine.createSpyObj<SupplierApiService>(
-      'SupplierApiService',
-      ['getAllSuppliers']
-    );
-
-    await TestBed.configureTestingModule({
-      imports: [PurchaseOrderFormPageComponent],
-      providers: [
-        provideRouter([]),
-        {
-          provide: PurchaseOrderApiService,
-          useValue: purchaseOrderApiServiceSpy
-        },
-        {
-          provide: SupplierApiService,
-          useValue: supplierApiServiceSpy
-        },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: {
-              paramMap: convertToParamMap({ id: '55' })
-            }
-          }
-        }
-      ]
-    }).compileComponents();
-
-    router = TestBed.inject(Router);
-    spyOn(router, 'navigate').and.resolveTo(true);
+    await configureTestingModule({ id: '55' });
 
     supplierApiServiceSpy.getAllSuppliers.and.returnValue(of(suppliersResponse));
     purchaseOrderApiServiceSpy.getPurchaseOrderById.and.returnValue(of(draftPurchaseOrder));
 
-    fixture = TestBed.createComponent(PurchaseOrderFormPageComponent);
-    component = fixture.componentInstance;
+    createComponent();
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -288,42 +266,7 @@ describe('PurchaseOrderFormPageComponent', () => {
 
   it('should update a draft purchase order in edit mode and navigate to detail page', async () => {
     TestBed.resetTestingModule();
-
-    purchaseOrderApiServiceSpy = jasmine.createSpyObj<PurchaseOrderApiService>(
-      'PurchaseOrderApiService',
-      ['getPurchaseOrderById', 'createPurchaseOrder', 'updatePurchaseOrder']
-    );
-
-    supplierApiServiceSpy = jasmine.createSpyObj<SupplierApiService>(
-      'SupplierApiService',
-      ['getAllSuppliers']
-    );
-
-    await TestBed.configureTestingModule({
-      imports: [PurchaseOrderFormPageComponent],
-      providers: [
-        provideRouter([]),
-        {
-          provide: PurchaseOrderApiService,
-          useValue: purchaseOrderApiServiceSpy
-        },
-        {
-          provide: SupplierApiService,
-          useValue: supplierApiServiceSpy
-        },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: {
-              paramMap: convertToParamMap({ id: '55' })
-            }
-          }
-        }
-      ]
-    }).compileComponents();
-
-    router = TestBed.inject(Router);
-    spyOn(router, 'navigate').and.resolveTo(true);
+    await configureTestingModule({ id: '55' });
 
     supplierApiServiceSpy.getAllSuppliers.and.returnValue(of(suppliersResponse));
     purchaseOrderApiServiceSpy.getPurchaseOrderById.and.returnValue(of(draftPurchaseOrder));
@@ -334,8 +277,7 @@ describe('PurchaseOrderFormPageComponent', () => {
       })
     );
 
-    fixture = TestBed.createComponent(PurchaseOrderFormPageComponent);
-    component = fixture.componentInstance;
+    createComponent();
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -351,39 +293,7 @@ describe('PurchaseOrderFormPageComponent', () => {
 
   it('should block editing when the loaded purchase order is not in draft status', async () => {
     TestBed.resetTestingModule();
-
-    purchaseOrderApiServiceSpy = jasmine.createSpyObj<PurchaseOrderApiService>(
-      'PurchaseOrderApiService',
-      ['getPurchaseOrderById', 'createPurchaseOrder', 'updatePurchaseOrder']
-    );
-
-    supplierApiServiceSpy = jasmine.createSpyObj<SupplierApiService>(
-      'SupplierApiService',
-      ['getAllSuppliers']
-    );
-
-    await TestBed.configureTestingModule({
-      imports: [PurchaseOrderFormPageComponent],
-      providers: [
-        provideRouter([]),
-        {
-          provide: PurchaseOrderApiService,
-          useValue: purchaseOrderApiServiceSpy
-        },
-        {
-          provide: SupplierApiService,
-          useValue: supplierApiServiceSpy
-        },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: {
-              paramMap: convertToParamMap({ id: '55' })
-            }
-          }
-        }
-      ]
-    }).compileComponents();
+    await configureTestingModule({ id: '55' });
 
     supplierApiServiceSpy.getAllSuppliers.and.returnValue(of(suppliersResponse));
     purchaseOrderApiServiceSpy.getPurchaseOrderById.and.returnValue(
@@ -393,8 +303,7 @@ describe('PurchaseOrderFormPageComponent', () => {
       })
     );
 
-    fixture = TestBed.createComponent(PurchaseOrderFormPageComponent);
-    component = fixture.componentInstance;
+    createComponent();
     fixture.detectChanges();
     await fixture.whenStable();
 
@@ -415,7 +324,7 @@ describe('PurchaseOrderFormPageComponent', () => {
     component.purchaseOrderForm.patchValue({
       orderNumber: 'PO-2026-1055',
       supplierId: 1,
-      requestedBy: 'Abood',
+      requestedBy: 'Punschkrapferl',
       orderDate: '2026-04-18'
     });
 

@@ -1,11 +1,15 @@
-<section class="page">
+<section class="page" data-testid="purchase-order-form-page">
   <div class="page-header">
     <div>
       <h2>{{ pageTitle() }}</h2>
       <p>{{ pageDescription() }}</p>
     </div>
 
-    <a routerLink="/purchase-orders" class="secondary-action">
+    <a
+      routerLink="/purchase-orders"
+      class="secondary-action"
+      data-testid="purchase-order-back-link"
+    >
       Back to Purchase Orders
     </a>
   </div>
@@ -17,12 +21,17 @@
     </div>
 
     @if (purchaseOrderLoadErrorMessage()) {
-      <div class="alert alert-error" role="alert">
+      <div class="alert alert-error" role="alert" data-testid="purchase-order-load-error">
         <strong>Could not load purchase order.</strong>
         <p>{{ purchaseOrderLoadErrorMessage() }}</p>
 
         @if (isEditMode()) {
-          <button type="button" class="secondary-action inline-action" (click)="loadPurchaseOrderForEdit()">
+          <button
+            type="button"
+            class="secondary-action inline-action"
+            (click)="loadPurchaseOrderForEdit()"
+            data-testid="purchase-order-load-retry-button"
+          >
             Try Again
           </button>
         }
@@ -30,22 +39,34 @@
     }
 
     @if (supplierLoadErrorMessage()) {
-      <div class="alert alert-error" role="alert">
+      <div class="alert alert-error" role="alert" data-testid="purchase-order-supplier-load-error">
         <strong>Could not load suppliers.</strong>
         <p>{{ supplierLoadErrorMessage() }}</p>
-        <button type="button" class="secondary-action inline-action" (click)="loadSuppliers()">
+        <button
+          type="button"
+          class="secondary-action inline-action"
+          (click)="loadSuppliers()"
+          data-testid="purchase-order-supplier-retry-button"
+        >
           Try Again
         </button>
       </div>
     }
 
     @if (isEditBlocked()) {
-      <div class="alert alert-error" role="alert">
+      <div class="alert alert-error" role="alert" data-testid="purchase-order-edit-blocked">
         <strong>Editing is not available.</strong>
-        <p>Only purchase orders in DRAFT status can be edited. This purchase order is currently {{ loadedPurchaseOrder()?.status }}.</p>
+        <p>
+          Only purchase orders in DRAFT status can be edited. This purchase order is currently
+          {{ loadedPurchaseOrder()?.status }}.
+        </p>
 
         @if (loadedPurchaseOrder(); as purchaseOrder) {
-          <a [routerLink]="['/purchase-orders', purchaseOrder.id]" class="secondary-action inline-action">
+          <a
+            [routerLink]="['/purchase-orders', purchaseOrder.id]"
+            class="secondary-action inline-action"
+            data-testid="purchase-order-back-to-detail-link"
+          >
             Back to Detail Page
           </a>
         }
@@ -53,7 +74,7 @@
     }
 
     @if (submitErrorMessage()) {
-      <div class="alert alert-error" role="alert">
+      <div class="alert alert-error" role="alert" data-testid="purchase-order-submit-error">
         <strong>
           @if (isEditMode()) {
             <span>Could not update purchase order.</span>
@@ -66,14 +87,14 @@
     }
 
     @if (isEditMode() && isLoadingPurchaseOrder()) {
-      <div class="alert" role="status">
+      <div class="alert" role="status" data-testid="purchase-order-edit-loading">
         <strong>Loading purchase order...</strong>
         <p>The frontend is requesting the existing purchase order before editing.</p>
       </div>
     }
 
     @if (isEditMode() && loadedPurchaseOrder(); as purchaseOrder) {
-      <div class="alert edit-context" role="status">
+      <div class="alert edit-context" role="status" data-testid="purchase-order-edit-context">
         <strong>Editing draft {{ purchaseOrder.orderNumber }}</strong>
         <p>
           Purchase order ID {{ purchaseOrder.id }} · Current status {{ purchaseOrder.status }} ·
@@ -82,7 +103,13 @@
       </div>
     }
 
-    <form [formGroup]="purchaseOrderForm" (ngSubmit)="onSubmit()" class="purchase-order-form" novalidate>
+    <form
+      [formGroup]="purchaseOrderForm"
+      (ngSubmit)="onSubmit()"
+      class="purchase-order-form"
+      novalidate
+      data-testid="purchase-order-form"
+    >
       <div class="form-grid">
         <div class="form-field">
           <label for="orderNumber">Order Number</label>
@@ -92,6 +119,7 @@
             formControlName="orderNumber"
             placeholder="PO-2026-1001"
             [class.input-invalid]="orderNumber.invalid && orderNumber.touched"
+            data-testid="purchase-order-number-input"
           />
 
           @if (orderNumber.invalid && orderNumber.touched) {
@@ -113,6 +141,7 @@
             formControlName="requestedBy"
             placeholder="Punschkrapferl"
             [class.input-invalid]="requestedBy.invalid && requestedBy.touched"
+            data-testid="purchase-order-requested-by-input"
           />
 
           @if (requestedBy.invalid && requestedBy.touched) {
@@ -132,6 +161,7 @@
             id="supplierId"
             formControlName="supplierId"
             [class.input-invalid]="supplierId.invalid && supplierId.touched"
+            data-testid="purchase-order-supplier-select"
           >
             <option [ngValue]="0">Select a supplier</option>
             @for (supplier of activeSuppliers(); track supplier.id) {
@@ -165,6 +195,7 @@
             type="date"
             formControlName="orderDate"
             [class.input-invalid]="orderDate.invalid && orderDate.touched"
+            data-testid="purchase-order-date-input"
           />
 
           @if (orderDate.value) {
@@ -179,7 +210,7 @@
         </div>
       </div>
 
-      <div class="line-items-card">
+      <div class="line-items-card" data-testid="purchase-order-line-items-card">
         <div class="line-items-header">
           <div>
             <h3>Line Items</h3>
@@ -191,6 +222,7 @@
             class="secondary-action"
             (click)="addLine()"
             [disabled]="purchaseOrderForm.disabled"
+            data-testid="purchase-order-add-line-button"
           >
             Add Line
           </button>
@@ -198,7 +230,11 @@
 
         <div formArrayName="lines" class="line-items-list">
           @for (lineGroup of lineFormGroups; track trackByLineControl($index, lineGroup)) {
-            <div class="line-item-row" [formGroupName]="$index">
+            <div
+              class="line-item-row"
+              [formGroupName]="$index"
+              data-testid="purchase-order-line-item"
+            >
               <div class="line-item-topbar">
                 <h4>Line {{ lineGroup.controls['lineNumber'].value }}</h4>
 
@@ -207,6 +243,7 @@
                   class="remove-line-button"
                   (click)="removeLine($index)"
                   [disabled]="lines.length === 1 || purchaseOrderForm.disabled"
+                  data-testid="purchase-order-remove-line-button"
                 >
                   Remove
                 </button>
@@ -221,6 +258,7 @@
                     formControlName="itemDescription"
                     placeholder="Enter ordered item"
                     [class.input-invalid]="lineGroup.controls['itemDescription'].invalid && lineGroup.controls['itemDescription'].touched"
+                    data-testid="purchase-order-line-description-input"
                   />
 
                   @if (lineGroup.controls['itemDescription'].invalid && lineGroup.controls['itemDescription'].touched) {
@@ -243,6 +281,7 @@
                     step="1"
                     formControlName="quantity"
                     [class.input-invalid]="lineGroup.controls['quantity'].invalid && lineGroup.controls['quantity'].touched"
+                    data-testid="purchase-order-line-quantity-input"
                   />
 
                   @if (lineGroup.controls['quantity'].invalid && lineGroup.controls['quantity'].touched) {
@@ -266,6 +305,7 @@
                     (paste)="handleUnitPricePaste($index, $event)"
                     (input)="normalizeUnitPriceInput($index)"
                     [class.input-invalid]="lineGroup.controls['unitPrice'].invalid && lineGroup.controls['unitPrice'].touched"
+                    data-testid="purchase-order-line-unit-price-input"
                   />
 
                   @if (lineGroup.controls['unitPrice'].invalid && lineGroup.controls['unitPrice'].touched) {
@@ -279,7 +319,7 @@
                   }
                 </div>
 
-                <div class="line-total-box">
+                <div class="line-total-box" data-testid="purchase-order-line-total-box">
                   <span class="line-total-label">Line Total</span>
                   <strong>{{ getFormattedLineTotal($index) }}</strong>
                 </div>
@@ -288,7 +328,7 @@
           }
         </div>
 
-        <div class="order-total">
+        <div class="order-total" data-testid="purchase-order-total">
           <span>Total Amount</span>
           <strong>{{ getFormattedOrderTotal() }}</strong>
         </div>
@@ -296,17 +336,28 @@
 
       <div class="form-actions">
         @if (isEditMode() && loadedPurchaseOrder(); as purchaseOrder) {
-          <a [routerLink]="['/purchase-orders', purchaseOrder.id]" class="secondary-action">
+          <a
+            [routerLink]="['/purchase-orders', purchaseOrder.id]"
+            class="secondary-action"
+            data-testid="purchase-order-cancel-link"
+          >
             Cancel
           </a>
         } @else {
-          <a routerLink="/purchase-orders" class="secondary-action">Cancel</a>
+          <a
+            routerLink="/purchase-orders"
+            class="secondary-action"
+            data-testid="purchase-order-cancel-link"
+          >
+            Cancel
+          </a>
         }
 
         <button
           type="submit"
           class="primary-action"
           [disabled]="isSubmitting() || isLoadingSuppliers() || isLoadingPurchaseOrder() || activeSuppliers().length === 0 || purchaseOrderForm.disabled"
+          data-testid="purchase-order-submit-button"
         >
           <span>{{ submitButtonLabel() }}</span>
         </button>

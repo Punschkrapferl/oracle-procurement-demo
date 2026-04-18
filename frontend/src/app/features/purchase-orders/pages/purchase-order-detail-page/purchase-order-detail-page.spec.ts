@@ -7,10 +7,18 @@ import { PurchaseOrderApiService } from '../../../../core/api/purchase-order-api
 import { PurchaseOrderResponse } from '../../../../core/models/purchase-order-response.model';
 import { PurchaseOrderDetailPageComponent } from './purchase-order-detail-page';
 
+type PurchaseOrderApiServiceSpy = {
+  getPurchaseOrderById: jasmine.Spy;
+  submitPurchaseOrder: jasmine.Spy;
+  approvePurchaseOrder: jasmine.Spy;
+  cancelPurchaseOrder: jasmine.Spy;
+  deletePurchaseOrder: jasmine.Spy;
+};
+
 describe('PurchaseOrderDetailPageComponent', () => {
   let fixture: ComponentFixture<PurchaseOrderDetailPageComponent>;
   let component: PurchaseOrderDetailPageComponent;
-  let purchaseOrderApiServiceSpy: jasmine.SpyObj<PurchaseOrderApiService>;
+  let purchaseOrderApiServiceSpy: PurchaseOrderApiServiceSpy;
   let router: Router;
 
   const draftPurchaseOrder: PurchaseOrderResponse = {
@@ -20,7 +28,7 @@ describe('PurchaseOrderDetailPageComponent', () => {
     supplierCode: 'SUP-1001',
     supplierName: 'Acme',
     status: 'DRAFT',
-    requestedBy: 'Abood',
+    requestedBy: 'Punschkrapferl',
     orderDate: '2026-04-18',
     totalAmount: 250,
     createdAt: '2026-04-18T10:00:00',
@@ -40,16 +48,13 @@ describe('PurchaseOrderDetailPageComponent', () => {
   };
 
   beforeEach(async () => {
-    purchaseOrderApiServiceSpy = jasmine.createSpyObj<PurchaseOrderApiService>(
-      'PurchaseOrderApiService',
-      [
-        'getPurchaseOrderById',
-        'submitPurchaseOrder',
-        'approvePurchaseOrder',
-        'cancelPurchaseOrder',
-        'deletePurchaseOrder'
-      ]
-    );
+    purchaseOrderApiServiceSpy = jasmine.createSpyObj('PurchaseOrderApiService', [
+      'getPurchaseOrderById',
+      'submitPurchaseOrder',
+      'approvePurchaseOrder',
+      'cancelPurchaseOrder',
+      'deletePurchaseOrder'
+    ]) as unknown as PurchaseOrderApiServiceSpy;
 
     await TestBed.configureTestingModule({
       imports: [PurchaseOrderDetailPageComponent],

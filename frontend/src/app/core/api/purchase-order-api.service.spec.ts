@@ -24,7 +24,7 @@ describe('PurchaseOrderApiService', () => {
     supplierCode: 'SUP-1001',
     supplierName: 'Acme',
     status: 'DRAFT',
-    requestedBy: 'Abood',
+    requestedBy: 'Punschkrapferl',
     orderDate: '2026-04-18',
     totalAmount: 150,
     createdAt: '2026-04-18T10:00:00',
@@ -42,12 +42,8 @@ describe('PurchaseOrderApiService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        // The service under test uses Angular HttpClient internally.
         provideHttpClient(),
-
-        // This testing provider lets us intercept outgoing HTTP calls safely.
         provideHttpClientTesting(),
-
         PurchaseOrderApiService
       ]
     });
@@ -57,7 +53,6 @@ describe('PurchaseOrderApiService', () => {
   });
 
   afterEach(() => {
-    // Verifies that every expected HTTP request was asserted in the test.
     httpTestingController.verify();
   });
 

@@ -1,4 +1,4 @@
-<section class="page">
+<section class="page" data-testid="purchase-order-detail-page">
   <div class="page-header">
     <div>
       <h2>Purchase Order Detail</h2>
@@ -7,42 +7,59 @@
       </p>
     </div>
 
-    <a routerLink="/purchase-orders" class="secondary-action">
+    <a
+      routerLink="/purchase-orders"
+      class="secondary-action"
+      data-testid="purchase-order-detail-back-link"
+    >
       Back to Purchase Orders
     </a>
   </div>
 
   @if (isLoading()) {
-    <div class="state-card">
+    <div class="state-card" data-testid="purchase-order-detail-loading-state">
       <h3>Loading purchase order...</h3>
       <p>The frontend is requesting purchase order detail data from the backend.</p>
     </div>
   } @else if (errorMessage()) {
-    <div class="state-card state-card-error">
+    <div class="state-card state-card-error" data-testid="purchase-order-detail-error-state">
       <h3>Could not load purchase order</h3>
       <p>{{ errorMessage() }}</p>
 
-      <button type="button" class="secondary-action" (click)="loadPurchaseOrder()">
+      <button
+        type="button"
+        class="secondary-action"
+        (click)="loadPurchaseOrder()"
+        data-testid="purchase-order-detail-retry-button"
+      >
         Try Again
       </button>
     </div>
   } @else if (purchaseOrder(); as po) {
     <div class="detail-layout">
-      <div class="detail-card">
+      <div class="detail-card" data-testid="purchase-order-metadata-card">
         <div class="detail-card-header">
           <div>
-            <h3>{{ po.orderNumber }}</h3>
+            <h3 data-testid="purchase-order-detail-order-number">{{ po.orderNumber }}</h3>
             <p>Purchase order metadata and current lifecycle status.</p>
           </div>
 
-          <span class="status-badge" [class]="getStatusClass(po.status)">
+          <span
+            class="status-badge"
+            [class]="getStatusClass(po.status)"
+            data-testid="purchase-order-detail-status-badge"
+          >
             {{ getStatusLabel(po.status) }}
           </span>
         </div>
 
         <div class="detail-actions">
           @if (canEdit()) {
-            <a [routerLink]="['/purchase-orders', po.id, 'edit']" class="primary-action">
+            <a
+              [routerLink]="['/purchase-orders', po.id, 'edit']"
+              class="primary-action"
+              data-testid="purchase-order-detail-edit-link"
+            >
               Edit Draft Purchase Order
             </a>
           }
@@ -53,6 +70,7 @@
               class="danger-action"
               [disabled]="isDeleting() || isWorkflowSubmitting()"
               (click)="deletePurchaseOrder()"
+              data-testid="purchase-order-detail-delete-button"
             >
               @if (isDeleting()) {
                 <span>Deleting...</span>
@@ -64,7 +82,7 @@
         </div>
 
         @if (deleteErrorMessage()) {
-          <div class="alert alert-error" role="alert">
+          <div class="alert alert-error" role="alert" data-testid="purchase-order-detail-delete-error">
             <p>{{ deleteErrorMessage() }}</p>
           </div>
         }
@@ -107,7 +125,7 @@
         </div>
 
         @if (po.cancellationReason) {
-          <div class="info-panel info-panel-cancelled">
+          <div class="info-panel info-panel-cancelled" data-testid="purchase-order-cancellation-panel">
             <strong>Cancellation Reason</strong>
             <p>{{ po.cancellationReason }}</p>
 
@@ -118,7 +136,7 @@
         }
       </div>
 
-      <div class="detail-card">
+      <div class="detail-card" data-testid="purchase-order-line-items-card">
         <div class="detail-card-header">
           <div>
             <h3>Line Items</h3>
@@ -127,7 +145,7 @@
         </div>
 
         <div class="table-wrapper">
-          <table class="line-table">
+          <table class="line-table" data-testid="purchase-order-line-table">
             <thead>
             <tr>
               <th>Line</th>
@@ -139,7 +157,7 @@
             </thead>
             <tbody>
               @for (line of po.lines; track line.id) {
-                <tr>
+                <tr data-testid="purchase-order-line-row">
                   <td>{{ line.lineNumber }}</td>
                   <td>{{ line.itemDescription }}</td>
                   <td>{{ line.quantity }}</td>
@@ -152,7 +170,7 @@
         </div>
       </div>
 
-      <div class="detail-card">
+      <div class="detail-card" data-testid="purchase-order-workflow-card">
         <div class="detail-card-header">
           <div>
             <h3>Workflow Actions</h3>
@@ -161,13 +179,13 @@
         </div>
 
         @if (workflowSuccessMessage()) {
-          <div class="alert alert-success" role="alert">
+          <div class="alert alert-success" role="alert" data-testid="purchase-order-workflow-success">
             <p>{{ workflowSuccessMessage() }}</p>
           </div>
         }
 
         @if (workflowErrorMessage()) {
-          <div class="alert alert-error" role="alert">
+          <div class="alert alert-error" role="alert" data-testid="purchase-order-workflow-error">
             <p>{{ workflowErrorMessage() }}</p>
           </div>
         }
@@ -179,6 +197,7 @@
               class="primary-action"
               [disabled]="isWorkflowSubmitting() || isDeleting()"
               (click)="submitPurchaseOrder()"
+              data-testid="purchase-order-submit-workflow-button"
             >
               @if (isWorkflowSubmitting()) {
                 <span>Submitting...</span>
@@ -194,6 +213,7 @@
               class="primary-action"
               [disabled]="isWorkflowSubmitting() || isDeleting()"
               (click)="approvePurchaseOrder()"
+              data-testid="purchase-order-approve-workflow-button"
             >
               @if (isWorkflowSubmitting()) {
                 <span>Approving...</span>
@@ -205,7 +225,13 @@
         </div>
 
         @if (canCancel()) {
-          <form [formGroup]="cancelForm" class="cancel-form" (ngSubmit)="cancelPurchaseOrder()" novalidate>
+          <form
+            [formGroup]="cancelForm"
+            class="cancel-form"
+            (ngSubmit)="cancelPurchaseOrder()"
+            novalidate
+            data-testid="purchase-order-cancel-form"
+          >
             <div class="form-field">
               <label for="cancelReason">Cancellation Reason</label>
               <textarea
@@ -214,6 +240,7 @@
                 rows="4"
                 placeholder="Explain why the approved purchase order must be cancelled"
                 [class.input-invalid]="cancelReason.invalid && cancelReason.touched"
+                data-testid="purchase-order-cancel-reason-input"
               ></textarea>
 
               @if (cancelReason.invalid && cancelReason.touched) {
@@ -231,6 +258,7 @@
               type="submit"
               class="danger-action"
               [disabled]="isWorkflowSubmitting() || isDeleting()"
+              data-testid="purchase-order-cancel-workflow-button"
             >
               @if (isWorkflowSubmitting()) {
                 <span>Cancelling...</span>
@@ -242,7 +270,7 @@
         }
 
         @if (!canSubmit() && !canApprove() && !canCancel()) {
-          <div class="info-panel">
+          <div class="info-panel" data-testid="purchase-order-no-workflow-actions">
             <p>No workflow action is currently available for this purchase order status.</p>
           </div>
         }

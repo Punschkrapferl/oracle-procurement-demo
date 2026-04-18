@@ -6,18 +6,20 @@ import { of, throwError } from 'rxjs';
 import { SupplierApiService } from '../../../../core/api/supplier-api.service';
 import { SupplierFormPageComponent } from './supplier-form-page';
 
+type SupplierApiServiceSpy = {
+  createSupplier: jasmine.Spy;
+};
+
 describe('SupplierFormPageComponent', () => {
   let fixture: ComponentFixture<SupplierFormPageComponent>;
   let component: SupplierFormPageComponent;
-  let supplierApiServiceSpy: jasmine.SpyObj<SupplierApiService>;
+  let supplierApiServiceSpy: SupplierApiServiceSpy;
   let router: Router;
 
   beforeEach(async () => {
-    // Mock API calls so the test stays focused on form behavior.
-    supplierApiServiceSpy = jasmine.createSpyObj<SupplierApiService>(
-      'SupplierApiService',
-      ['createSupplier']
-    );
+    supplierApiServiceSpy = jasmine.createSpyObj('SupplierApiService', [
+      'createSupplier'
+    ]) as unknown as SupplierApiServiceSpy;
 
     await TestBed.configureTestingModule({
       imports: [SupplierFormPageComponent],
@@ -77,9 +79,6 @@ describe('SupplierFormPageComponent', () => {
 
     createComponent();
 
-    // Keep spaces on text fields to verify trimming behavior.
-    // Do not keep spaces around the email, because Angular validates
-    // the raw form value before onSubmit builds the trimmed request.
     component.supplierForm.setValue({
       supplierCode: '  SUP-1001  ',
       name: '  Acme Industrial Supplies  ',
@@ -90,14 +89,12 @@ describe('SupplierFormPageComponent', () => {
     component.onSubmit();
 
     expect(component.supplierForm.valid).toBeTrue();
-
     expect(supplierApiServiceSpy.createSupplier).toHaveBeenCalledWith({
       supplierCode: 'SUP-1001',
       name: 'Acme Industrial Supplies',
       contactEmail: 'orders@acme-industrial.com',
       active: true
     });
-
     expect(router.navigate).toHaveBeenCalledWith(['/suppliers']);
   });
 
@@ -142,7 +139,9 @@ describe('SupplierFormPageComponent', () => {
     component.onSubmit();
     fixture.detectChanges();
 
-    expect(component.submitErrorMessage()).toBe('A supplier with the same supplier code or email already exists.');
+    expect(component.submitErrorMessage()).toBe(
+      'A supplier with the same supplier code or email already exists.'
+    );
   });
 
   it('should show a backend connectivity message when the backend cannot be reached', () => {
@@ -171,7 +170,9 @@ describe('SupplierFormPageComponent', () => {
     component.isSubmitting.set(true);
     fixture.detectChanges();
 
-    const submitButton = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
+    const submitButton = fixture.nativeElement.querySelector(
+      'button[type="submit"]'
+    ) as HTMLButtonElement;
 
     expect(submitButton.disabled).toBeTrue();
     expect(submitButton.textContent).toContain('Creating Supplier...');

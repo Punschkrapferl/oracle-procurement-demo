@@ -1,4 +1,4 @@
-<section class="page">
+<section class="page" data-testid="purchase-order-list-page">
   <div class="page-header">
     <div>
       <h2>Purchase Orders</h2>
@@ -7,61 +7,88 @@
       </p>
     </div>
 
-    <a routerLink="/purchase-orders/new" class="primary-action">
+    <a
+      routerLink="/purchase-orders/new"
+      class="primary-action"
+      data-testid="purchase-order-create-link"
+    >
       Create Purchase Order
     </a>
   </div>
 
   @if (successMessage()) {
-    <div class="alert alert-success" role="alert">
+    <div class="alert alert-success" role="alert" data-testid="purchase-order-success-alert">
       <div class="alert-content">
         <p>{{ successMessage() }}</p>
-        <button type="button" class="alert-dismiss" (click)="dismissSuccessMessage()">Dismiss</button>
+        <button
+          type="button"
+          class="alert-dismiss"
+          (click)="dismissSuccessMessage()"
+          data-testid="purchase-order-success-dismiss"
+        >
+          Dismiss
+        </button>
       </div>
     </div>
   }
 
   @if (deleteErrorMessage()) {
-    <div class="alert alert-error" role="alert">
+    <div class="alert alert-error" role="alert" data-testid="purchase-order-delete-error-alert">
       <div class="alert-content">
         <p>{{ deleteErrorMessage() }}</p>
-        <button type="button" class="alert-dismiss" (click)="dismissDeleteErrorMessage()">Dismiss</button>
+        <button
+          type="button"
+          class="alert-dismiss"
+          (click)="dismissDeleteErrorMessage()"
+          data-testid="purchase-order-delete-error-dismiss"
+        >
+          Dismiss
+        </button>
       </div>
     </div>
   }
 
   @if (isLoading()) {
-    <div class="state-card">
+    <div class="state-card" data-testid="purchase-order-loading-state">
       <h3>Loading purchase orders...</h3>
       <p>The frontend is requesting purchase order data from the backend.</p>
     </div>
   } @else if (errorMessage()) {
-    <div class="state-card state-card-error">
+    <div class="state-card state-card-error" data-testid="purchase-order-error-state">
       <h3>Could not load purchase orders</h3>
       <p>{{ errorMessage() }}</p>
 
-      <button type="button" class="secondary-action" (click)="loadPurchaseOrders()">
+      <button
+        type="button"
+        class="secondary-action"
+        (click)="loadPurchaseOrders()"
+        data-testid="purchase-order-retry-button"
+      >
         Try Again
       </button>
     </div>
   } @else if (purchaseOrders().length === 0) {
-    <div class="state-card">
+    <div class="state-card" data-testid="purchase-order-empty-state">
       <h3>No purchase orders found</h3>
       <p>Create the first purchase order to begin the procurement workflow.</p>
 
-      <a routerLink="/purchase-orders/new" class="primary-action">
+      <a
+        routerLink="/purchase-orders/new"
+        class="primary-action"
+        data-testid="purchase-order-create-first-link"
+      >
         Create First Purchase Order
       </a>
     </div>
   } @else {
-    <div class="table-card">
+    <div class="table-card" data-testid="purchase-order-table-card">
       <div class="table-card-header">
         <h3>Purchase Order Directory</h3>
         <p>{{ purchaseOrders().length }} purchase order(s) loaded from the backend.</p>
       </div>
 
       <div class="table-wrapper">
-        <table class="purchase-order-table">
+        <table class="purchase-order-table" data-testid="purchase-order-table">
           <thead>
           <tr>
             <th>ID</th>
@@ -76,7 +103,7 @@
           </thead>
           <tbody>
             @for (purchaseOrder of purchaseOrders(); track trackByPurchaseOrderId($index, purchaseOrder)) {
-              <tr>
+              <tr data-testid="purchase-order-row">
                 <td>{{ purchaseOrder.id }}</td>
                 <td>{{ purchaseOrder.orderNumber }}</td>
                 <td>{{ getSupplierDisplayName(purchaseOrder) }}</td>
@@ -87,6 +114,7 @@
                   <span
                     class="status-badge"
                     [class]="getStatusClass(purchaseOrder.status)"
+                    data-testid="purchase-order-status-badge"
                   >
                     {{ getStatusLabel(purchaseOrder.status) }}
                   </span>
@@ -96,6 +124,7 @@
                     <a
                       [routerLink]="['/purchase-orders', purchaseOrder.id]"
                       class="secondary-action compact-action"
+                      data-testid="purchase-order-view-link"
                     >
                       View
                     </a>
@@ -104,6 +133,7 @@
                       <a
                         [routerLink]="['/purchase-orders', purchaseOrder.id, 'edit']"
                         class="primary-action compact-action"
+                        data-testid="purchase-order-edit-link"
                       >
                         Edit
                       </a>
@@ -115,6 +145,7 @@
                         class="danger-action compact-action"
                         [disabled]="isDeleting(purchaseOrder.id)"
                         (click)="deletePurchaseOrder(purchaseOrder)"
+                        data-testid="purchase-order-delete-button"
                       >
                         @if (isDeleting(purchaseOrder.id)) {
                           <span>Deleting...</span>

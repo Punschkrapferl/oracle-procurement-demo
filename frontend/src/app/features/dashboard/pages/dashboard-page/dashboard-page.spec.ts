@@ -8,12 +8,16 @@ import { PurchaseOrderResponse } from '../../../../core/models/purchase-order-re
 import { PurchaseOrderStatusSummaryResponse } from '../../../../core/models/purchase-order-status-summary-response.model';
 import { DashboardPageComponent } from './dashboard-page';
 
+type PurchaseOrderApiServiceSpy = {
+  getPurchaseOrderStatusSummary: jasmine.Spy;
+  getAllPurchaseOrders: jasmine.Spy;
+};
+
 describe('DashboardPageComponent', () => {
   let fixture: ComponentFixture<DashboardPageComponent>;
   let component: DashboardPageComponent;
-  let purchaseOrderApiServiceSpy: jasmine.SpyObj<PurchaseOrderApiService>;
+  let purchaseOrderApiServiceSpy: PurchaseOrderApiServiceSpy;
 
-  // Shared summary fixture used across dashboard tests.
   const summaryResponse: PurchaseOrderStatusSummaryResponse[] = [
     { status: 'APPROVED', count: 2 },
     { status: 'CANCELLED', count: 2 },
@@ -21,7 +25,6 @@ describe('DashboardPageComponent', () => {
     { status: 'SUBMITTED', count: 1 }
   ];
 
-  // Shared purchase order fixture with enough entries to verify sorting and slicing.
   const purchaseOrdersResponse: PurchaseOrderResponse[] = [
     {
       id: 1,
@@ -30,7 +33,7 @@ describe('DashboardPageComponent', () => {
       supplierCode: 'SUP-1001',
       supplierName: 'Acme',
       status: 'CANCELLED',
-      requestedBy: 'Abood',
+      requestedBy: 'Punschkrapferl',
       orderDate: '2026-04-18',
       totalAmount: 250,
       createdAt: '2026-04-18T09:00:00',
@@ -122,12 +125,10 @@ describe('DashboardPageComponent', () => {
   ];
 
   beforeEach(async () => {
-    // We mock the API service because component tests should verify component behavior,
-    // not real HTTP communication.
-    purchaseOrderApiServiceSpy = jasmine.createSpyObj<PurchaseOrderApiService>(
-      'PurchaseOrderApiService',
-      ['getPurchaseOrderStatusSummary', 'getAllPurchaseOrders']
-    );
+    purchaseOrderApiServiceSpy = jasmine.createSpyObj('PurchaseOrderApiService', [
+      'getPurchaseOrderStatusSummary',
+      'getAllPurchaseOrders'
+    ]) as unknown as PurchaseOrderApiServiceSpy;
 
     await TestBed.configureTestingModule({
       imports: [DashboardPageComponent],
@@ -146,9 +147,13 @@ describe('DashboardPageComponent', () => {
     component = fixture.componentInstance;
   }
 
-  it('should create the dashboard page', async () => {
+  function mockSuccessfulDashboardLoad(): void {
     purchaseOrderApiServiceSpy.getPurchaseOrderStatusSummary.and.returnValue(of(summaryResponse));
     purchaseOrderApiServiceSpy.getAllPurchaseOrders.and.returnValue(of(purchaseOrdersResponse));
+  }
+
+  it('should create the dashboard page', async () => {
+    mockSuccessfulDashboardLoad();
 
     createComponent();
     fixture.detectChanges();
@@ -158,26 +163,22 @@ describe('DashboardPageComponent', () => {
   });
 
   it('should load dashboard data on init and calculate totals', async () => {
-    purchaseOrderApiServiceSpy.getPurchaseOrderStatusSummary.and.returnValue(of(summaryResponse));
-    purchaseOrderApiServiceSpy.getAllPurchaseOrders.and.returnValue(of(purchaseOrdersResponse));
+    mockSuccessfulDashboardLoad();
 
     createComponent();
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
 
-    // The total count should come from the summary response, not from a hardcoded value.
     expect(component.totalCount()).toBe(6);
     expect(component.summary().length).toBe(4);
     expect(component.purchaseOrders().length).toBe(6);
-
     expect(purchaseOrderApiServiceSpy.getPurchaseOrderStatusSummary).toHaveBeenCalledTimes(1);
     expect(purchaseOrderApiServiceSpy.getAllPurchaseOrders).toHaveBeenCalledTimes(1);
   });
 
   it('should keep only the latest 5 recent purchase orders sorted by updatedAt descending', async () => {
-    purchaseOrderApiServiceSpy.getPurchaseOrderStatusSummary.and.returnValue(of(summaryResponse));
-    purchaseOrderApiServiceSpy.getAllPurchaseOrders.and.returnValue(of(purchaseOrdersResponse));
+    mockSuccessfulDashboardLoad();
 
     createComponent();
     fixture.detectChanges();
@@ -193,8 +194,7 @@ describe('DashboardPageComponent', () => {
   });
 
   it('should keep only cancelled purchase orders sorted by cancelledAt descending', async () => {
-    purchaseOrderApiServiceSpy.getPurchaseOrderStatusSummary.and.returnValue(of(summaryResponse));
-    purchaseOrderApiServiceSpy.getAllPurchaseOrders.and.returnValue(of(purchaseOrdersResponse));
+    mockSuccessfulDashboardLoad();
 
     createComponent();
     fixture.detectChanges();
@@ -209,8 +209,7 @@ describe('DashboardPageComponent', () => {
   });
 
   it('should render summary cards, recent orders, and cancelled order cards', async () => {
-    purchaseOrderApiServiceSpy.getPurchaseOrderStatusSummary.and.returnValue(of(summaryResponse));
-    purchaseOrderApiServiceSpy.getAllPurchaseOrders.and.returnValue(of(purchaseOrdersResponse));
+    mockSuccessfulDashboardLoad();
 
     createComponent();
     fixture.detectChanges();
@@ -218,20 +217,12 @@ describe('DashboardPageComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-
-    // Summary cards come from the status summary endpoint.
-    expect(compiled.querySelectorAll('.summary-card').length).toBe(4);
-
-    // The recent orders table should render exactly 5 rows.
-    expect(compiled.querySelectorAll('.dashboard-table tbody tr').length).toBe(5);
-
-    // The cancelled section should render one card per cancelled order in the sliced result.
-    expect(compiled.querySelectorAll('.cancelled-card').length).toBe(2);
-
-    // Order links should be visible in both the table and the cancelled section.
     const firstOrderLink = compiled.querySelector('.order-link');
-    expect(firstOrderLink?.textContent).toContain('PO-2026-1006');
 
+    expect(compiled.querySelectorAll('.summary-card').length).toBe(4);
+    expect(compiled.querySelectorAll('.dashboard-table tbody tr').length).toBe(5);
+    expect(compiled.querySelectorAll('.cancelled-card').length).toBe(2);
+    expect(firstOrderLink?.textContent).toContain('PO-2026-1006');
     expect(compiled.textContent).toContain('Recent Purchase Orders');
     expect(compiled.textContent).toContain('Recent Cancelled Purchase Orders');
     expect(compiled.textContent).toContain('Budget removed');

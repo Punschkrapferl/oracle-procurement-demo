@@ -1,4 +1,4 @@
-<section class="page">
+<section class="page" data-testid="supplier-form-page">
   <div class="page-header">
     <div>
       <h2>New Supplier</h2>
@@ -7,7 +7,7 @@
       </p>
     </div>
 
-    <a routerLink="/suppliers" class="secondary-action">
+    <a routerLink="/suppliers" class="secondary-action" data-testid="supplier-back-link">
       Back to Suppliers
     </a>
   </div>
@@ -19,13 +19,19 @@
     </div>
 
     @if (submitErrorMessage()) {
-      <div class="alert alert-error" role="alert">
+      <div class="alert alert-error" role="alert" data-testid="supplier-submit-error">
         <strong>Could not create supplier.</strong>
         <p>{{ submitErrorMessage() }}</p>
       </div>
     }
 
-    <form [formGroup]="supplierForm" (ngSubmit)="onSubmit()" class="supplier-form" novalidate>
+    <form
+      [formGroup]="supplierForm"
+      (ngSubmit)="onSubmit()"
+      class="supplier-form"
+      novalidate
+      data-testid="supplier-form"
+    >
       <div class="form-grid">
         <div class="form-field">
           <label for="supplierCode">Supplier Code</label>
@@ -35,6 +41,7 @@
             formControlName="supplierCode"
             placeholder="SUP-1001"
             [class.input-invalid]="supplierCode.invalid && supplierCode.touched"
+            data-testid="supplier-code-input"
           />
 
           @if (supplierCode.invalid && supplierCode.touched) {
@@ -56,6 +63,7 @@
             formControlName="name"
             placeholder="Acme Industrial Supplies"
             [class.input-invalid]="name.invalid && name.touched"
+            data-testid="supplier-name-input"
           />
 
           @if (name.invalid && name.touched) {
@@ -77,6 +85,7 @@
             formControlName="contactEmail"
             placeholder="orders@acme-industrial.com"
             [class.input-invalid]="contactEmail.invalid && contactEmail.touched"
+            data-testid="supplier-email-input"
           />
 
           @if (contactEmail.invalid && contactEmail.touched) {
@@ -94,16 +103,28 @@
 
         <div class="form-field form-field-full">
           <label class="checkbox-field" for="active">
-            <input id="active" type="checkbox" formControlName="active" />
+            <input
+              id="active"
+              type="checkbox"
+              formControlName="active"
+              data-testid="supplier-active-checkbox"
+            />
             <span>Supplier is active and can be used for new purchase orders</span>
           </label>
         </div>
       </div>
 
       <div class="form-actions">
-        <a routerLink="/suppliers" class="secondary-action">Cancel</a>
+        <a routerLink="/suppliers" class="secondary-action" data-testid="supplier-cancel-link">
+          Cancel
+        </a>
 
-        <button type="submit" class="primary-action" [disabled]="isSubmitting()">
+        <button
+          type="submit"
+          class="primary-action"
+          [disabled]="isSubmitting()"
+          data-testid="supplier-submit-button"
+        >
           @if (isSubmitting()) {
             <span>Creating Supplier...</span>
           } @else {

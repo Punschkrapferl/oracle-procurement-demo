@@ -1,4 +1,4 @@
-<section class="page">
+<section class="page" data-testid="supplier-list-page">
   <div class="page-header">
     <div>
       <h2>Suppliers</h2>
@@ -7,43 +7,56 @@
       </p>
     </div>
 
-    <a routerLink="/suppliers/new" class="primary-action">
+    <a
+      routerLink="/suppliers/new"
+      class="primary-action"
+      data-testid="supplier-create-link"
+    >
       Create Supplier
     </a>
   </div>
 
   @if (isLoading()) {
-    <div class="state-card">
+    <div class="state-card" data-testid="supplier-loading-state">
       <h3>Loading suppliers...</h3>
       <p>The frontend is requesting supplier data from the backend.</p>
     </div>
   } @else if (errorMessage()) {
-    <div class="state-card state-card-error">
+    <div class="state-card state-card-error" data-testid="supplier-error-state">
       <h3>Could not load suppliers</h3>
       <p>{{ errorMessage() }}</p>
 
-      <button type="button" class="secondary-action" (click)="loadSuppliers()">
+      <button
+        type="button"
+        class="secondary-action"
+        (click)="loadSuppliers()"
+        data-testid="supplier-retry-button"
+      >
         Try Again
       </button>
     </div>
   } @else if (suppliers().length === 0) {
-    <div class="state-card">
+    <div class="state-card" data-testid="supplier-empty-state">
       <h3>No suppliers found</h3>
       <p>Create the first supplier to start building purchase orders.</p>
 
-      <a routerLink="/suppliers/new" class="primary-action">
+      <a
+        routerLink="/suppliers/new"
+        class="primary-action"
+        data-testid="supplier-create-first-link"
+      >
         Create First Supplier
       </a>
     </div>
   } @else {
-    <div class="table-card">
+    <div class="table-card" data-testid="supplier-table-card">
       <div class="table-card-header">
         <h3>Supplier Directory</h3>
         <p>{{ suppliers().length }} supplier(s) loaded from the backend.</p>
       </div>
 
       <div class="table-wrapper">
-        <table class="supplier-table">
+        <table class="supplier-table" data-testid="supplier-table">
           <thead>
           <tr>
             <th>ID</th>
@@ -55,7 +68,7 @@
           </thead>
           <tbody>
             @for (supplier of suppliers(); track trackBySupplierId($index, supplier)) {
-              <tr>
+              <tr data-testid="supplier-row">
                 <td>{{ supplier.id }}</td>
                 <td>{{ supplier.supplierCode }}</td>
                 <td>{{ supplier.name }}</td>
@@ -65,6 +78,7 @@
                     class="status-badge"
                     [class.status-active]="supplier.active"
                     [class.status-inactive]="!supplier.active"
+                    data-testid="supplier-status-badge"
                   >
                     {{ supplier.active ? 'Active' : 'Inactive' }}
                   </span>
