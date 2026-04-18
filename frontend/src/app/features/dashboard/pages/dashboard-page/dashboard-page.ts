@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 
 import { PurchaseOrderApiService } from '../../../../core/api/purchase-order-api.service';
@@ -10,7 +11,7 @@ import { PurchaseOrderStatusSummaryResponse } from '../../../../core/models/purc
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.css'
 })
@@ -26,7 +27,7 @@ export class DashboardPageComponent implements OnInit {
   readonly recentPurchaseOrders = computed(() =>
     [...this.purchaseOrders()]
       .sort((a, b) => this.toTime(b.updatedAt) - this.toTime(a.updatedAt))
-      .slice(0, 8)
+      .slice(0, 5)
   );
 
   readonly recentCancelledPurchaseOrders = computed(() =>
@@ -102,6 +103,10 @@ export class DashboardPageComponent implements OnInit {
     }
 
     return '—';
+  }
+
+  getPurchaseOrderDetailLink(purchaseOrderId: number): (string | number)[] {
+    return ['/purchase-orders', purchaseOrderId];
   }
 
   trackByStatus(_: number, item: PurchaseOrderStatusSummaryResponse): string {

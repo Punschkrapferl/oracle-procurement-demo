@@ -37,7 +37,7 @@
       <section class="dashboard-section">
         <div class="section-header">
           <h3>Recent Purchase Orders</h3>
-          <p>Latest purchase orders across all statuses.</p>
+          <p>Latest 5 purchase orders across all statuses.</p>
         </div>
 
         @if (recentPurchaseOrders().length === 0) {
@@ -60,7 +60,14 @@
               <tbody>
                 @for (purchaseOrder of recentPurchaseOrders(); track trackByPurchaseOrder($index, purchaseOrder)) {
                   <tr>
-                    <td class="cell-strong">{{ purchaseOrder.orderNumber }}</td>
+                    <td class="cell-strong">
+                      <a
+                        class="order-link"
+                        [routerLink]="getPurchaseOrderDetailLink(purchaseOrder.id)"
+                      >
+                        {{ purchaseOrder.orderNumber }}
+                      </a>
+                    </td>
                     <td>{{ formatSupplier(purchaseOrder) }}</td>
                     <td>{{ purchaseOrder.requestedBy }}</td>
                     <td>
@@ -86,7 +93,7 @@
 
         @if (recentCancelledPurchaseOrders().length === 0) {
           <div class="empty-card">
-            <p>No cancelled purchase orders available yet.</p>
+            <p>No cancelled purchase orders yet.</p>
           </div>
         } @else {
           <div class="cancelled-list">
@@ -94,7 +101,14 @@
               <article class="cancelled-card">
                 <div class="cancelled-card-header">
                   <div>
-                    <h4>{{ purchaseOrder.orderNumber }}</h4>
+                    <h4>
+                      <a
+                        class="order-link"
+                        [routerLink]="getPurchaseOrderDetailLink(purchaseOrder.id)"
+                      >
+                        {{ purchaseOrder.orderNumber }}
+                      </a>
+                    </h4>
                     <p>{{ formatSupplier(purchaseOrder) }}</p>
                   </div>
 

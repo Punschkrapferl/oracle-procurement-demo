@@ -112,6 +112,22 @@
   font-weight: 700;
 }
 
+.order-link {
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.order-link:hover {
+  text-decoration: underline;
+}
+
+.order-link:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 0.2rem;
+}
+
 .cancelled-list {
   display: flex;
   flex-direction: column;
