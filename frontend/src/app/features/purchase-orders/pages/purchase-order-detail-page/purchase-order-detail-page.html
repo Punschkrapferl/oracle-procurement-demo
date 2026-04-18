@@ -46,7 +46,28 @@
               Edit Draft Purchase Order
             </a>
           }
+
+          @if (canDelete()) {
+            <button
+              type="button"
+              class="danger-action"
+              [disabled]="isDeleting() || isWorkflowSubmitting()"
+              (click)="deletePurchaseOrder()"
+            >
+              @if (isDeleting()) {
+                <span>Deleting...</span>
+              } @else {
+                <span>Delete Draft Purchase Order</span>
+              }
+            </button>
+          }
         </div>
+
+        @if (deleteErrorMessage()) {
+          <div class="alert alert-error" role="alert">
+            <p>{{ deleteErrorMessage() }}</p>
+          </div>
+        }
 
         <div class="detail-grid">
           <div class="detail-item">
@@ -156,7 +177,7 @@
             <button
               type="button"
               class="primary-action"
-              [disabled]="isWorkflowSubmitting()"
+              [disabled]="isWorkflowSubmitting() || isDeleting()"
               (click)="submitPurchaseOrder()"
             >
               @if (isWorkflowSubmitting()) {
@@ -171,7 +192,7 @@
             <button
               type="button"
               class="primary-action"
-              [disabled]="isWorkflowSubmitting()"
+              [disabled]="isWorkflowSubmitting() || isDeleting()"
               (click)="approvePurchaseOrder()"
             >
               @if (isWorkflowSubmitting()) {
@@ -209,7 +230,7 @@
             <button
               type="submit"
               class="danger-action"
-              [disabled]="isWorkflowSubmitting()"
+              [disabled]="isWorkflowSubmitting() || isDeleting()"
             >
               @if (isWorkflowSubmitting()) {
                 <span>Cancelling...</span>

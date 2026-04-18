@@ -12,6 +12,24 @@
     </a>
   </div>
 
+  @if (successMessage()) {
+    <div class="alert alert-success" role="alert">
+      <div class="alert-content">
+        <p>{{ successMessage() }}</p>
+        <button type="button" class="alert-dismiss" (click)="dismissSuccessMessage()">Dismiss</button>
+      </div>
+    </div>
+  }
+
+  @if (deleteErrorMessage()) {
+    <div class="alert alert-error" role="alert">
+      <div class="alert-content">
+        <p>{{ deleteErrorMessage() }}</p>
+        <button type="button" class="alert-dismiss" (click)="dismissDeleteErrorMessage()">Dismiss</button>
+      </div>
+    </div>
+  }
+
   @if (isLoading()) {
     <div class="state-card">
       <h3>Loading purchase orders...</h3>
@@ -89,6 +107,21 @@
                       >
                         Edit
                       </a>
+                    }
+
+                    @if (canDelete(purchaseOrder)) {
+                      <button
+                        type="button"
+                        class="danger-action compact-action"
+                        [disabled]="isDeleting(purchaseOrder.id)"
+                        (click)="deletePurchaseOrder(purchaseOrder)"
+                      >
+                        @if (isDeleting(purchaseOrder.id)) {
+                          <span>Deleting...</span>
+                        } @else {
+                          <span>Delete</span>
+                        }
+                      </button>
                     }
                   </div>
                 </td>
