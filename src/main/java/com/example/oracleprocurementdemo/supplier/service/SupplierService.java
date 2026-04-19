@@ -10,6 +10,7 @@ import com.example.oracleprocurementdemo.supplier.dto.SupplierResponse;
 import com.example.oracleprocurementdemo.supplier.dto.UpdateSupplierRequest;
 import com.example.oracleprocurementdemo.supplier.entity.Supplier;
 import com.example.oracleprocurementdemo.supplier.repository.SupplierRepository;
+
 import java.util.List;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -86,16 +87,12 @@ public class SupplierService {
     public void deleteSupplier(Long id) {
         Supplier supplier = findSupplierById(id);
 
-        // A supplier must not be deleted while purchase orders in an active business state
-        // still reference it. This protects in-progress workflow data from disappearing.
         if (purchaseOrderRepository.existsBySupplier_IdAndStatusNot(id, PurchaseOrderStatus.CANCELLED)) {
             throw new ResourceConflictException(
                     "Supplier cannot be deleted because non-cancelled purchase orders still exist for it"
             );
         }
 
-        // Cancelled purchase orders are treated as removable historical dependents here.
-        // They are deleted first so the supplier relationship no longer blocks supplier deletion.
         List<PurchaseOrder> cancelledPurchaseOrders =
                 purchaseOrderRepository.findAllBySupplier_IdAndStatus(id, PurchaseOrderStatus.CANCELLED);
 
