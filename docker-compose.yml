@@ -19,7 +19,7 @@ services:
       - oracle-procurement-demo-data:/opt/oracle/oradata
 
   app:
-    image: punschkrapferl23/oracle-procurement-demo:1.0.4
+    image: punschkrapferl23/oracle-procurement-demo-backend:1.0.5
     container_name: oracle-procurement-app-demo
     depends_on:
       oracle:
