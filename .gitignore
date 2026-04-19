@@ -11,6 +11,9 @@ target/
 .DS_Store
 **/.DS_Store
 
+frontend/playwright-report/
+frontend/test-results/
+
 ### STS ###
 .apt_generated
 .classpath
