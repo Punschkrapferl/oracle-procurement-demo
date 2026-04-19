@@ -91,7 +91,6 @@
         <table class="purchase-order-table" data-testid="purchase-order-table">
           <thead>
           <tr>
-            <th>ID</th>
             <th>Order Number</th>
             <th>Supplier</th>
             <th>Requested By</th>
@@ -104,7 +103,6 @@
           <tbody>
             @for (purchaseOrder of purchaseOrders(); track trackByPurchaseOrderId($index, purchaseOrder)) {
               <tr data-testid="purchase-order-row">
-                <td>{{ purchaseOrder.id }}</td>
                 <td>{{ purchaseOrder.orderNumber }}</td>
                 <td>{{ getSupplierDisplayName(purchaseOrder) }}</td>
                 <td>{{ purchaseOrder.requestedBy }}</td>

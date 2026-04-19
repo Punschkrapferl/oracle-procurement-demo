@@ -1,0 +1,9 @@
+services:
+  frontend:
+    image: punschkrapferl23/oracle-procurement-demo-frontend:1.0.0
+    container_name: oracle-procurement-demo-frontend
+    ports:
+      - "4200:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
