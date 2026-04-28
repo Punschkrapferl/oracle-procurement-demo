@@ -34,10 +34,10 @@ public class Supplier {
     @Column(name = "supplier_code", nullable = false, unique = true, length = 50)
     private String supplierCode;
 
-    @Column(name = "name", nullable = false, length = 200)
+    @Column(name = "name", nullable = false, length = 150)
     private String name;
 
-    @Column(name = "contact_email", nullable = false, length = 200)
+    @Column(name = "contact_email", nullable = false, length = 150)
     private String contactEmail;
 
     /*
