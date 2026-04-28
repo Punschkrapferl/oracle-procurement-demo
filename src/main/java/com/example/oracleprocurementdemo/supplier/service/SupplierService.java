@@ -55,6 +55,13 @@ public class SupplierService {
         supplier.setSupplierCode(supplierCode);
         supplier.setName(normalize(request.getName()));
         supplier.setContactEmail(normalize(request.getContactEmail()));
+
+        /*
+         * Create behavior:
+         *
+         * If the frontend does not send an active value during creation,
+         * new suppliers are active by default.
+         */
         supplier.setActive(request.getActive() == null ? Boolean.TRUE : request.getActive());
 
         Supplier savedSupplier = supplierRepository.save(supplier);
@@ -76,6 +83,14 @@ public class SupplierService {
         supplier.setSupplierCode(supplierCode);
         supplier.setName(normalize(request.getName()));
         supplier.setContactEmail(normalize(request.getContactEmail()));
+
+        /*
+         * Update behavior:
+         *
+         * active is required on update, so we do not silently default it to true.
+         * This prevents accidentally reactivating an inactive supplier when the
+         * frontend forgets to send the active field.
+         */
         supplier.setActive(request.getActive());
 
         return toResponse(supplier);

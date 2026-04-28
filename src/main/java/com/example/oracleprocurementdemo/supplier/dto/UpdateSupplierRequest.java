@@ -44,6 +44,6 @@ public class UpdateSupplierRequest {
             description = "Whether the supplier is active and can be used for purchase orders",
             example = "true"
     )
-    @NotNull
+    @NotNull(message = "Active status is required")
     private Boolean active;
 }

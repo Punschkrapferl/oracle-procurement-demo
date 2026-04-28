@@ -18,11 +18,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -98,6 +100,63 @@ class SupplierControllerWebMvcTest {
                 .andExpect(jsonPath("$.validationErrors.supplierCode").value("must not be blank"))
                 .andExpect(jsonPath("$.validationErrors.name").value("must not be blank"))
                 .andExpect(jsonPath("$.validationErrors.contactEmail").value("must be a well-formed email address"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/suppliers/{id} returns 200 and the updated supplier")
+    void updateSupplier_shouldReturnUpdatedSupplier() throws Exception {
+        SupplierResponse response = new SupplierResponse(
+                3L,
+                "SUP-3001",
+                "Updated Supplier Name",
+                "updated@email.com",
+                false,
+                LocalDateTime.of(2026, 4, 14, 13, 0, 0)
+        );
+
+        when(supplierService.updateSupplier(eq(3L), any())).thenReturn(response);
+
+        String requestBody = """
+                {
+                  "supplierCode": "SUP-3001",
+                  "name": "Updated Supplier Name",
+                  "contactEmail": "updated@email.com",
+                  "active": false
+                }
+                """;
+
+        mockMvc.perform(put(ApiPaths.SUPPLIERS + "/{id}", 3L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(3))
+                .andExpect(jsonPath("$.supplierCode").value("SUP-3001"))
+                .andExpect(jsonPath("$.name").value("Updated Supplier Name"))
+                .andExpect(jsonPath("$.contactEmail").value("updated@email.com"))
+                .andExpect(jsonPath("$.active").value(false))
+                .andExpect(jsonPath("$.createdAt").value("2026-04-14T13:00:00"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/suppliers/{id} returns 400 when active is missing")
+    void updateSupplier_shouldReturnBadRequest_whenActiveIsMissing() throws Exception {
+        String requestBody = """
+                {
+                  "supplierCode": "SUP-1001",
+                  "name": "Acme Industrial Supplies",
+                  "contactEmail": "orders@acme-industrial.com"
+                }
+                """;
+
+        mockMvc.perform(put(ApiPaths.SUPPLIERS + "/{id}", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.path").value(ApiPaths.SUPPLIERS + "/1"))
+                .andExpect(jsonPath("$.validationErrors.active").value("Active status is required"));
     }
 
     @Test
