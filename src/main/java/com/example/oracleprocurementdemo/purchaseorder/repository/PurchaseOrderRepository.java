@@ -2,7 +2,6 @@ package com.example.oracleprocurementdemo.purchaseorder.repository;
 
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderStatusSummaryResponse;
 import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrder;
-import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrderStatus;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -16,10 +15,6 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
     Optional<PurchaseOrder> findByOrderNumber(String orderNumber);
 
     boolean existsBySupplier_Id(Long supplierId);
-
-    boolean existsBySupplier_IdAndStatusNot(Long supplierId, PurchaseOrderStatus status);
-
-    List<PurchaseOrder> findAllBySupplier_IdAndStatus(Long supplierId, PurchaseOrderStatus status);
 
     @EntityGraph(attributePaths = {"supplier", "lines"})
     @Query("select po from PurchaseOrder po where po.id = :id")

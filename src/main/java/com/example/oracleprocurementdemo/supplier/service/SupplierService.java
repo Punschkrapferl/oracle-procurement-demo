@@ -2,15 +2,12 @@ package com.example.oracleprocurementdemo.supplier.service;
 
 import com.example.oracleprocurementdemo.common.exception.ResourceConflictException;
 import com.example.oracleprocurementdemo.common.exception.ResourceNotFoundException;
-import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrder;
-import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrderStatus;
 import com.example.oracleprocurementdemo.purchaseorder.repository.PurchaseOrderRepository;
 import com.example.oracleprocurementdemo.supplier.dto.CreateSupplierRequest;
 import com.example.oracleprocurementdemo.supplier.dto.SupplierResponse;
 import com.example.oracleprocurementdemo.supplier.dto.UpdateSupplierRequest;
 import com.example.oracleprocurementdemo.supplier.entity.Supplier;
 import com.example.oracleprocurementdemo.supplier.repository.SupplierRepository;
-
 import java.util.List;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -79,7 +76,7 @@ public class SupplierService {
         supplier.setSupplierCode(supplierCode);
         supplier.setName(normalize(request.getName()));
         supplier.setContactEmail(normalize(request.getContactEmail()));
-        supplier.setActive(request.getActive() == null ? Boolean.TRUE : request.getActive());
+        supplier.setActive(request.getActive());
 
         return toResponse(supplier);
     }
@@ -87,17 +84,10 @@ public class SupplierService {
     public void deleteSupplier(Long id) {
         Supplier supplier = findSupplierById(id);
 
-        if (purchaseOrderRepository.existsBySupplier_IdAndStatusNot(id, PurchaseOrderStatus.CANCELLED)) {
+        if (purchaseOrderRepository.existsBySupplier_Id(id)) {
             throw new ResourceConflictException(
-                    "Supplier cannot be deleted because non-cancelled purchase orders still exist for it"
+                    "Supplier cannot be deleted because purchase order history exists for it. Deactivate the supplier instead."
             );
-        }
-
-        List<PurchaseOrder> cancelledPurchaseOrders =
-                purchaseOrderRepository.findAllBySupplier_IdAndStatus(id, PurchaseOrderStatus.CANCELLED);
-
-        if (!cancelledPurchaseOrders.isEmpty()) {
-            purchaseOrderRepository.deleteAll(cancelledPurchaseOrders);
         }
 
         supplierRepository.delete(supplier);

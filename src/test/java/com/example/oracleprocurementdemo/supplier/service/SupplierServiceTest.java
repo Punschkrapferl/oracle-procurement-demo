@@ -2,14 +2,12 @@ package com.example.oracleprocurementdemo.supplier.service;
 
 import com.example.oracleprocurementdemo.common.exception.ResourceConflictException;
 import com.example.oracleprocurementdemo.common.exception.ResourceNotFoundException;
-import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrder;
-import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrderStatus;
 import com.example.oracleprocurementdemo.purchaseorder.repository.PurchaseOrderRepository;
+import com.example.oracleprocurementdemo.supplier.dto.CreateSupplierRequest;
 import com.example.oracleprocurementdemo.supplier.dto.SupplierResponse;
 import com.example.oracleprocurementdemo.supplier.dto.UpdateSupplierRequest;
 import com.example.oracleprocurementdemo.supplier.entity.Supplier;
 import com.example.oracleprocurementdemo.supplier.repository.SupplierRepository;
-import com.example.oracleprocurementdemo.supplier.dto.CreateSupplierRequest;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +19,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class SupplierServiceTest {
 
@@ -242,58 +243,27 @@ class SupplierServiceTest {
     }
 
     @Test
-    @DisplayName("Should delete supplier when no non-cancelled purchase orders exist")
-    void shouldDeleteSupplierWhenNoNonCancelledPurchaseOrdersExist() {
+    @DisplayName("Should delete supplier when no purchase order history exists")
+    void shouldDeleteSupplierWhenNoPurchaseOrderHistoryExists() {
         Supplier supplier = buildSupplier(40L, "SUP-6001", "Delete Me Supplier", "delete@me.com", true);
 
         when(supplierRepository.findById(40L)).thenReturn(Optional.of(supplier));
-        when(purchaseOrderRepository.existsBySupplier_IdAndStatusNot(40L, PurchaseOrderStatus.CANCELLED))
-                .thenReturn(false);
-        when(purchaseOrderRepository.findAllBySupplier_IdAndStatus(40L, PurchaseOrderStatus.CANCELLED))
-                .thenReturn(List.of());
+        when(purchaseOrderRepository.existsBySupplier_Id(40L)).thenReturn(false);
 
         supplierService.deleteSupplier(40L);
 
         verify(supplierRepository).findById(40L);
-        verify(purchaseOrderRepository).existsBySupplier_IdAndStatusNot(40L, PurchaseOrderStatus.CANCELLED);
-        verify(purchaseOrderRepository).findAllBySupplier_IdAndStatus(40L, PurchaseOrderStatus.CANCELLED);
-        verify(purchaseOrderRepository, never()).deleteAll(anyList());
+        verify(purchaseOrderRepository).existsBySupplier_Id(40L);
         verify(supplierRepository).delete(supplier);
     }
 
     @Test
-    @DisplayName("Should delete supplier and cancelled purchase orders when only cancelled purchase orders exist")
-    void shouldDeleteSupplierAndCancelledPurchaseOrdersWhenOnlyCancelledPurchaseOrdersExist() {
-        Supplier supplier = buildSupplier(45L, "SUP-6501", "Cancelled Cleanup Supplier", "cleanup@sup.com", true);
-
-        PurchaseOrder cancelledPurchaseOrder = new PurchaseOrder();
-        cancelledPurchaseOrder.setId(900L);
-
-        List<PurchaseOrder> cancelledPurchaseOrders = List.of(cancelledPurchaseOrder);
-
-        when(supplierRepository.findById(45L)).thenReturn(Optional.of(supplier));
-        when(purchaseOrderRepository.existsBySupplier_IdAndStatusNot(45L, PurchaseOrderStatus.CANCELLED))
-                .thenReturn(false);
-        when(purchaseOrderRepository.findAllBySupplier_IdAndStatus(45L, PurchaseOrderStatus.CANCELLED))
-                .thenReturn(cancelledPurchaseOrders);
-
-        supplierService.deleteSupplier(45L);
-
-        verify(supplierRepository).findById(45L);
-        verify(purchaseOrderRepository).existsBySupplier_IdAndStatusNot(45L, PurchaseOrderStatus.CANCELLED);
-        verify(purchaseOrderRepository).findAllBySupplier_IdAndStatus(45L, PurchaseOrderStatus.CANCELLED);
-        verify(purchaseOrderRepository).deleteAll(cancelledPurchaseOrders);
-        verify(supplierRepository).delete(supplier);
-    }
-
-    @Test
-    @DisplayName("Should reject delete when non-cancelled purchase orders already exist for supplier")
-    void shouldRejectDeleteWhenNonCancelledPurchaseOrdersAlreadyExist() {
+    @DisplayName("Should reject delete when any purchase order history exists")
+    void shouldRejectDeleteWhenPurchaseOrderHistoryExists() {
         Supplier supplier = buildSupplier(50L, "SUP-7001", "Protected Supplier", "protected@sup.com", true);
 
         when(supplierRepository.findById(50L)).thenReturn(Optional.of(supplier));
-        when(purchaseOrderRepository.existsBySupplier_IdAndStatusNot(50L, PurchaseOrderStatus.CANCELLED))
-                .thenReturn(true);
+        when(purchaseOrderRepository.existsBySupplier_Id(50L)).thenReturn(true);
 
         ResourceConflictException exception = assertThrows(
                 ResourceConflictException.class,
@@ -301,13 +271,12 @@ class SupplierServiceTest {
         );
 
         assertEquals(
-                "Supplier cannot be deleted because non-cancelled purchase orders still exist for it",
+                "Supplier cannot be deleted because purchase order history exists for it. Deactivate the supplier instead.",
                 exception.getMessage()
         );
 
         verify(supplierRepository).findById(50L);
-        verify(purchaseOrderRepository).existsBySupplier_IdAndStatusNot(50L, PurchaseOrderStatus.CANCELLED);
-        verify(purchaseOrderRepository, never()).findAllBySupplier_IdAndStatus(anyLong(), any());
+        verify(purchaseOrderRepository).existsBySupplier_Id(50L);
         verify(supplierRepository, never()).delete(any());
     }
 

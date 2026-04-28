@@ -1,5 +1,6 @@
 package com.example.oracleprocurementdemo.supplier.controller;
 
+import com.example.oracleprocurementdemo.common.api.ApiPaths;
 import com.example.oracleprocurementdemo.common.exception.GlobalExceptionHandler;
 import com.example.oracleprocurementdemo.common.exception.ResourceConflictException;
 import com.example.oracleprocurementdemo.common.exception.ResourceNotFoundException;
@@ -32,11 +33,15 @@ class SupplierControllerWebMvcTest {
     @Autowired
     private MockMvc mockMvc;
 
+    /*
+     * Initialized by Spring's test context.
+     * IntelliJ may show "never assigned", but @MockitoBean creates and injects this mock.
+     */
     @MockitoBean
     private SupplierService supplierService;
 
     @Test
-    @DisplayName("POST /api/suppliers returns 201 and the created supplier")
+    @DisplayName("POST /api/v1/suppliers returns 201 and the created supplier")
     void createSupplier_shouldReturnCreatedSupplier() throws Exception {
         SupplierResponse response = new SupplierResponse(
                 1L,
@@ -58,7 +63,7 @@ class SupplierControllerWebMvcTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/suppliers")
+        mockMvc.perform(post(ApiPaths.SUPPLIERS)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isCreated())
@@ -71,7 +76,7 @@ class SupplierControllerWebMvcTest {
     }
 
     @Test
-    @DisplayName("POST /api/suppliers returns 400 when request validation fails")
+    @DisplayName("POST /api/v1/suppliers returns 400 when request validation fails")
     void createSupplier_shouldReturnBadRequest_whenValidationFails() throws Exception {
         String requestBody = """
                 {
@@ -82,21 +87,21 @@ class SupplierControllerWebMvcTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/suppliers")
+        mockMvc.perform(post(ApiPaths.SUPPLIERS)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Validation failed"))
-                .andExpect(jsonPath("$.path").value("/api/suppliers"))
+                .andExpect(jsonPath("$.path").value(ApiPaths.SUPPLIERS))
                 .andExpect(jsonPath("$.validationErrors.supplierCode").value("must not be blank"))
                 .andExpect(jsonPath("$.validationErrors.name").value("must not be blank"))
                 .andExpect(jsonPath("$.validationErrors.contactEmail").value("must be a well-formed email address"));
     }
 
     @Test
-    @DisplayName("GET /api/suppliers/{id} returns 200 and the supplier")
+    @DisplayName("GET /api/v1/suppliers/{id} returns 200 and the supplier")
     void getSupplierById_shouldReturnSupplier() throws Exception {
         SupplierResponse response = new SupplierResponse(
                 5L,
@@ -109,7 +114,7 @@ class SupplierControllerWebMvcTest {
 
         when(supplierService.getSupplierById(5L)).thenReturn(response);
 
-        mockMvc.perform(get("/api/suppliers/{id}", 5L))
+        mockMvc.perform(get(ApiPaths.SUPPLIERS + "/{id}", 5L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.supplierCode").value("SUP-2000"))
@@ -120,37 +125,37 @@ class SupplierControllerWebMvcTest {
     }
 
     @Test
-    @DisplayName("GET /api/suppliers/{id} returns 404 when supplier does not exist")
+    @DisplayName("GET /api/v1/suppliers/{id} returns 404 when supplier does not exist")
     void getSupplierById_shouldReturnNotFound_whenSupplierDoesNotExist() throws Exception {
         when(supplierService.getSupplierById(999L))
                 .thenThrow(new ResourceNotFoundException("Supplier", 999L));
 
-        mockMvc.perform(get("/api/suppliers/{id}", 999L))
+        mockMvc.perform(get(ApiPaths.SUPPLIERS + "/{id}", 999L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value("Supplier with id 999 not found"))
-                .andExpect(jsonPath("$.path").value("/api/suppliers/999"));
+                .andExpect(jsonPath("$.path").value(ApiPaths.SUPPLIERS + "/999"));
     }
 
     @Test
-    @DisplayName("DELETE /api/suppliers/{id} returns 409 when supplier cannot be deleted")
+    @DisplayName("DELETE /api/v1/suppliers/{id} returns 409 when supplier cannot be deleted")
     void deleteSupplier_shouldReturnConflict_whenSupplierHasPurchaseOrders() throws Exception {
         doThrow(new ResourceConflictException(
-                "Supplier cannot be deleted because purchase orders already exist for it"
+                "Supplier cannot be deleted because purchase order history exists for it. Deactivate the supplier instead."
         )).when(supplierService).deleteSupplier(10L);
 
-        mockMvc.perform(delete("/api/suppliers/{id}", 10L))
+        mockMvc.perform(delete(ApiPaths.SUPPLIERS + "/{id}", 10L))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.error").value("Conflict"))
                 .andExpect(jsonPath("$.message")
-                        .value("Supplier cannot be deleted because purchase orders already exist for it"))
-                .andExpect(jsonPath("$.path").value("/api/suppliers/10"));
+                        .value("Supplier cannot be deleted because purchase order history exists for it. Deactivate the supplier instead."))
+                .andExpect(jsonPath("$.path").value(ApiPaths.SUPPLIERS + "/10"));
     }
 
     @Test
-    @DisplayName("GET /api/suppliers returns 200 and the supplier list")
+    @DisplayName("GET /api/v1/suppliers returns 200 and the supplier list")
     void getAllSuppliers_shouldReturnSupplierList() throws Exception {
         List<SupplierResponse> suppliers = List.of(
                 new SupplierResponse(
@@ -173,7 +178,7 @@ class SupplierControllerWebMvcTest {
 
         when(supplierService.getAllSuppliers()).thenReturn(suppliers);
 
-        mockMvc.perform(get("/api/suppliers"))
+        mockMvc.perform(get(ApiPaths.SUPPLIERS))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].supplierCode").value("SUP-1001"))

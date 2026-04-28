@@ -1,5 +1,6 @@
 package com.example.oracleprocurementdemo;
 
+import com.example.oracleprocurementdemo.common.api.ApiPaths;
 import com.example.oracleprocurementdemo.common.exception.ApiErrorResponse;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderResponse;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderStatusSummaryResponse;
@@ -41,17 +42,8 @@ class OracleProcurementDemoApplicationTests {
 	@BeforeEach
 	void cleanDatabase() {
 		/*
-		 * Intentional test-only cleanup for full integration test isolation.
-		 *
-		 * Clear all application data before each test so every scenario starts
-		 * from a known empty state and test results stay deterministic.
-		 *
-		 * The delete order is intentional as well:
-		 * 1. purchase_order_lines
-		 * 2. purchase_orders
-		 * 3. suppliers
-		 *
-		 * Child tables must be cleared before parent tables to avoid foreign key violations.
+		 * Test-only cleanup for full integration test isolation.
+		 * Child tables are cleared before parent tables to avoid foreign key violations.
 		 */
 		jdbcTemplate.execute("DELETE FROM purchase_order_lines");
 		jdbcTemplate.execute("DELETE FROM purchase_orders");
@@ -74,10 +66,12 @@ class OracleProcurementDemoApplicationTests {
                 }
                 """;
 
-		HttpEntity<String> request = jsonRequest(createSupplierJson);
-
 		ResponseEntity<SupplierResponse> createResponse =
-				restTemplate.postForEntity("/api/suppliers", request, SupplierResponse.class);
+				restTemplate.postForEntity(
+						ApiPaths.SUPPLIERS,
+						jsonRequest(createSupplierJson),
+						SupplierResponse.class
+				);
 
 		assertEquals(HttpStatus.CREATED, createResponse.getStatusCode());
 		assertNotNull(createResponse.getBody());
@@ -90,7 +84,10 @@ class OracleProcurementDemoApplicationTests {
 		Long supplierId = createResponse.getBody().getId();
 
 		ResponseEntity<SupplierResponse> getByIdResponse =
-				restTemplate.getForEntity("/api/suppliers/" + supplierId, SupplierResponse.class);
+				restTemplate.getForEntity(
+						ApiPaths.SUPPLIERS + "/" + supplierId,
+						SupplierResponse.class
+				);
 
 		assertEquals(HttpStatus.OK, getByIdResponse.getStatusCode());
 		assertNotNull(getByIdResponse.getBody());
@@ -99,7 +96,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<List<SupplierResponse>> getAllResponse =
 				restTemplate.exchange(
-						"/api/suppliers",
+						ApiPaths.SUPPLIERS,
 						HttpMethod.GET,
 						null,
 						new ParameterizedTypeReference<>() {
@@ -146,7 +143,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> createResponse =
 				restTemplate.postForEntity(
-						"/api/purchase-orders",
+						ApiPaths.PURCHASE_ORDERS,
 						jsonRequest(createPurchaseOrderJson),
 						PurchaseOrderResponse.class
 				);
@@ -167,7 +164,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> submitResponse =
 				restTemplate.postForEntity(
-						"/api/purchase-orders/" + purchaseOrderId + "/submit",
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId + "/submit",
 						null,
 						PurchaseOrderResponse.class
 				);
@@ -178,7 +175,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> approveResponse =
 				restTemplate.postForEntity(
-						"/api/purchase-orders/" + purchaseOrderId + "/approve",
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId + "/approve",
 						null,
 						PurchaseOrderResponse.class
 				);
@@ -191,7 +188,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> getByIdResponse =
 				restTemplate.getForEntity(
-						"/api/purchase-orders/" + purchaseOrderId,
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId,
 						PurchaseOrderResponse.class
 				);
 
@@ -204,7 +201,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<List<PurchaseOrderStatusSummaryResponse>> summaryResponse =
 				restTemplate.exchange(
-						"/api/purchase-orders/summary/status",
+						ApiPaths.PURCHASE_ORDERS + "/summary/status",
 						HttpMethod.GET,
 						null,
 						new ParameterizedTypeReference<>() {
@@ -231,7 +228,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> submitResponse =
 				restTemplate.postForEntity(
-						"/api/purchase-orders/" + purchaseOrderId + "/submit",
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId + "/submit",
 						null,
 						PurchaseOrderResponse.class
 				);
@@ -242,7 +239,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> approveResponse =
 				restTemplate.postForEntity(
-						"/api/purchase-orders/" + purchaseOrderId + "/approve",
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId + "/approve",
 						null,
 						PurchaseOrderResponse.class
 				);
@@ -259,7 +256,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> cancelResponse =
 				restTemplate.postForEntity(
-						"/api/purchase-orders/" + purchaseOrderId + "/cancel",
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId + "/cancel",
 						jsonRequest(cancelJson),
 						PurchaseOrderResponse.class
 				);
@@ -275,7 +272,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> getByIdResponse =
 				restTemplate.getForEntity(
-						"/api/purchase-orders/" + purchaseOrderId,
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId,
 						PurchaseOrderResponse.class
 				);
 
@@ -290,7 +287,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<List<PurchaseOrderStatusSummaryResponse>> summaryResponse =
 				restTemplate.exchange(
-						"/api/purchase-orders/summary/status",
+						ApiPaths.PURCHASE_ORDERS + "/summary/status",
 						HttpMethod.GET,
 						null,
 						new ParameterizedTypeReference<>() {
@@ -305,8 +302,13 @@ class OracleProcurementDemoApplicationTests {
 	}
 
 	@Test
-	@DisplayName("Should delete supplier after its purchase orders were cancelled")
-	void shouldDeleteSupplierAfterItsPurchaseOrdersWereCancelled() {
+	@DisplayName("Should reject deleting supplier when purchase order history exists")
+	void shouldRejectDeletingSupplierWhenPurchaseOrderHistoryExists() {
+		/*
+		 * Current business rule:
+		 * A supplier with any purchase order history must not be deleted.
+		 * Even cancelled orders still count as history.
+		 */
 		Long supplierId = createSupplier(
 				"SUP-3601",
 				"Round Trip Supply GmbH",
@@ -317,7 +319,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> submitResponse =
 				restTemplate.postForEntity(
-						"/api/purchase-orders/" + purchaseOrderId + "/submit",
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId + "/submit",
 						null,
 						PurchaseOrderResponse.class
 				);
@@ -328,7 +330,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> approveResponse =
 				restTemplate.postForEntity(
-						"/api/purchase-orders/" + purchaseOrderId + "/approve",
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId + "/approve",
 						null,
 						PurchaseOrderResponse.class
 				);
@@ -345,7 +347,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> cancelResponse =
 				restTemplate.postForEntity(
-						"/api/purchase-orders/" + purchaseOrderId + "/cancel",
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId + "/cancel",
 						jsonRequest(cancelJson),
 						PurchaseOrderResponse.class
 				);
@@ -354,33 +356,40 @@ class OracleProcurementDemoApplicationTests {
 		assertNotNull(cancelResponse.getBody());
 		assertEquals("CANCELLED", cancelResponse.getBody().getStatus().name());
 
-		ResponseEntity<Void> deleteSupplierResponse =
+		ResponseEntity<ApiErrorResponse> deleteSupplierResponse =
 				restTemplate.exchange(
-						"/api/suppliers/" + supplierId,
+						ApiPaths.SUPPLIERS + "/" + supplierId,
 						HttpMethod.DELETE,
 						null,
-						Void.class
-				);
-
-		assertEquals(HttpStatus.NO_CONTENT, deleteSupplierResponse.getStatusCode());
-
-		ResponseEntity<ApiErrorResponse> getDeletedSupplierResponse =
-				restTemplate.getForEntity(
-						"/api/suppliers/" + supplierId,
 						ApiErrorResponse.class
 				);
 
-		assertEquals(HttpStatus.NOT_FOUND, getDeletedSupplierResponse.getStatusCode());
-		assertNotNull(getDeletedSupplierResponse.getBody());
+		assertEquals(HttpStatus.CONFLICT, deleteSupplierResponse.getStatusCode());
+		assertNotNull(deleteSupplierResponse.getBody());
+		assertEquals(
+				"Supplier cannot be deleted because purchase order history exists for it. Deactivate the supplier instead.",
+				deleteSupplierResponse.getBody().getMessage()
+		);
 
-		ResponseEntity<ApiErrorResponse> getDeletedPurchaseOrderResponse =
+		ResponseEntity<SupplierResponse> getSupplierResponse =
 				restTemplate.getForEntity(
-						"/api/purchase-orders/" + purchaseOrderId,
-						ApiErrorResponse.class
+						ApiPaths.SUPPLIERS + "/" + supplierId,
+						SupplierResponse.class
 				);
 
-		assertEquals(HttpStatus.NOT_FOUND, getDeletedPurchaseOrderResponse.getStatusCode());
-		assertNotNull(getDeletedPurchaseOrderResponse.getBody());
+		assertEquals(HttpStatus.OK, getSupplierResponse.getStatusCode());
+		assertNotNull(getSupplierResponse.getBody());
+		assertEquals(supplierId, getSupplierResponse.getBody().getId());
+
+		ResponseEntity<PurchaseOrderResponse> getPurchaseOrderResponse =
+				restTemplate.getForEntity(
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId,
+						PurchaseOrderResponse.class
+				);
+
+		assertEquals(HttpStatus.OK, getPurchaseOrderResponse.getStatusCode());
+		assertNotNull(getPurchaseOrderResponse.getBody());
+		assertEquals("CANCELLED", getPurchaseOrderResponse.getBody().getStatus().name());
 	}
 
 	@Test
@@ -396,7 +405,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<ApiErrorResponse> response =
 				restTemplate.postForEntity(
-						"/api/purchase-orders/" + purchaseOrderId + "/approve",
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId + "/approve",
 						null,
 						ApiErrorResponse.class
 				);
@@ -442,7 +451,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> updateResponse =
 				restTemplate.exchange(
-						"/api/purchase-orders/" + purchaseOrderId,
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId,
 						HttpMethod.PUT,
 						jsonRequest(updatePurchaseOrderJson),
 						PurchaseOrderResponse.class
@@ -460,7 +469,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> getByIdResponse =
 				restTemplate.getForEntity(
-						"/api/purchase-orders/" + purchaseOrderId,
+						ApiPaths.PURCHASE_ORDERS + "/" + purchaseOrderId,
 						PurchaseOrderResponse.class
 				);
 
@@ -486,7 +495,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<SupplierResponse> response =
 				restTemplate.postForEntity(
-						"/api/suppliers",
+						ApiPaths.SUPPLIERS,
 						jsonRequest(createSupplierJson),
 						SupplierResponse.class
 				);
@@ -524,7 +533,7 @@ class OracleProcurementDemoApplicationTests {
 
 		ResponseEntity<PurchaseOrderResponse> response =
 				restTemplate.postForEntity(
-						"/api/purchase-orders",
+						ApiPaths.PURCHASE_ORDERS,
 						jsonRequest(createPurchaseOrderJson),
 						PurchaseOrderResponse.class
 				);

@@ -13,6 +13,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -93,6 +94,23 @@ public class GlobalExceptionHandler {
                 "Validation failed",
                 request.getRequestURI(),
                 validationErrors
+        );
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoResourceFound(
+            HttpServletRequest request
+    ) {
+        /*
+         * This catches requests that do not match any controller route.
+         * Without this handler, Spring can report missing endpoints as static-resource errors,
+         * and the generic Exception handler would incorrectly return 500.
+         */
+        return buildErrorResponse(
+                HttpStatus.NOT_FOUND,
+                "No endpoint found for " + request.getRequestURI(),
+                request.getRequestURI(),
+                null
         );
     }
 

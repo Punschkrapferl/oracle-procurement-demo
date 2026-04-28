@@ -1,7 +1,6 @@
 package com.example.oracleprocurementdemo.supplier.entity;
 
 import com.example.oracleprocurementdemo.purchaseorder.entity.PurchaseOrder;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -55,7 +54,7 @@ public class Supplier {
     private LocalDateTime createdAt;
 
     @ToString.Exclude
-    @OneToMany(mappedBy = "supplier", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "supplier", fetch = FetchType.LAZY)
     private List<PurchaseOrder> purchaseOrders = new ArrayList<>();
 
     @PrePersist
@@ -63,6 +62,7 @@ public class Supplier {
         if (active == null) {
             active = true;
         }
+
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }

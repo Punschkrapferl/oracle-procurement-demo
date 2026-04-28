@@ -1,5 +1,6 @@
 package com.example.oracleprocurementdemo.purchaseorder.controller;
 
+import com.example.oracleprocurementdemo.common.api.ApiPaths;
 import com.example.oracleprocurementdemo.purchaseorder.dto.CancelPurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.CreatePurchaseOrderRequest;
 import com.example.oracleprocurementdemo.purchaseorder.dto.PurchaseOrderResponse;
@@ -25,7 +26,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/purchase-orders")
+@RequestMapping(ApiPaths.PURCHASE_ORDERS)
 @Tag(name = "Purchase Orders", description = "Purchase order lifecycle endpoints")
 public class PurchaseOrderController {
 

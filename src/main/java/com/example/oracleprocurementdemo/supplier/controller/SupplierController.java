@@ -1,5 +1,6 @@
 package com.example.oracleprocurementdemo.supplier.controller;
 
+import com.example.oracleprocurementdemo.common.api.ApiPaths;
 import com.example.oracleprocurementdemo.supplier.dto.CreateSupplierRequest;
 import com.example.oracleprocurementdemo.supplier.dto.SupplierResponse;
 import com.example.oracleprocurementdemo.supplier.dto.UpdateSupplierRequest;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/suppliers")
+@RequestMapping(ApiPaths.SUPPLIERS)
 @Tag(name = "Suppliers", description = "Supplier management endpoints")
 public class SupplierController {
 
@@ -97,7 +98,7 @@ public class SupplierController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Delete a supplier")
+    @Operation(summary = "Delete a supplier that has no purchase order history")
     public void deleteSupplier(@PathVariable Long id) {
         supplierService.deleteSupplier(id);
     }

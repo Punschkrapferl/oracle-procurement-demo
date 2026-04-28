@@ -1,5 +1,6 @@
 package com.example.oracleprocurementdemo.purchaseorder.controller;
 
+import com.example.oracleprocurementdemo.common.api.ApiPaths;
 import com.example.oracleprocurementdemo.common.exception.BusinessRuleException;
 import com.example.oracleprocurementdemo.common.exception.GlobalExceptionHandler;
 import com.example.oracleprocurementdemo.common.exception.ResourceNotFoundException;
@@ -39,11 +40,15 @@ class PurchaseOrderControllerWebMvcTest {
     @Autowired
     private MockMvc mockMvc;
 
+    /*
+     * Initialized by Spring's test context.
+     * IntelliJ may show "never assigned", but @MockitoBean creates and injects this mock.
+     */
     @MockitoBean
     private PurchaseOrderService purchaseOrderService;
 
     @Test
-    @DisplayName("POST /api/purchase-orders returns 201 and created purchase order")
+    @DisplayName("POST /api/v1/purchase-orders returns 201 and created purchase order")
     void createPurchaseOrder_shouldReturnCreatedPurchaseOrder() throws Exception {
         PurchaseOrderResponse response = buildPurchaseOrderResponse(
                 100L,
@@ -81,7 +86,7 @@ class PurchaseOrderControllerWebMvcTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/purchase-orders")
+        mockMvc.perform(post(ApiPaths.PURCHASE_ORDERS)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isCreated())
@@ -103,7 +108,7 @@ class PurchaseOrderControllerWebMvcTest {
     }
 
     @Test
-    @DisplayName("POST /api/purchase-orders returns 400 when request validation fails")
+    @DisplayName("POST /api/v1/purchase-orders returns 400 when request validation fails")
     void createPurchaseOrder_shouldReturnBadRequest_whenValidationFails() throws Exception {
         String requestBody = """
                 {
@@ -115,14 +120,14 @@ class PurchaseOrderControllerWebMvcTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/purchase-orders")
+        mockMvc.perform(post(ApiPaths.PURCHASE_ORDERS)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Validation failed"))
-                .andExpect(jsonPath("$.path").value("/api/purchase-orders"))
+                .andExpect(jsonPath("$.path").value(ApiPaths.PURCHASE_ORDERS))
                 .andExpect(jsonPath("$.validationErrors.orderNumber").value("must not be blank"))
                 .andExpect(jsonPath("$.validationErrors.supplierId").value("must be greater than 0"))
                 .andExpect(jsonPath("$.validationErrors.requestedBy").value("must not be blank"))
@@ -131,7 +136,7 @@ class PurchaseOrderControllerWebMvcTest {
     }
 
     @Test
-    @DisplayName("GET /api/purchase-orders/{id} returns 200 and purchase order")
+    @DisplayName("GET /api/v1/purchase-orders/{id} returns 200 and purchase order")
     void getPurchaseOrderById_shouldReturnPurchaseOrder() throws Exception {
         PurchaseOrderResponse response = buildPurchaseOrderResponse(
                 200L,
@@ -146,7 +151,7 @@ class PurchaseOrderControllerWebMvcTest {
 
         when(purchaseOrderService.getPurchaseOrderById(200L)).thenReturn(response);
 
-        mockMvc.perform(get("/api/purchase-orders/{id}", 200L))
+        mockMvc.perform(get(ApiPaths.PURCHASE_ORDERS + "/{id}", 200L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(200))
                 .andExpect(jsonPath("$.orderNumber").value("PO-2026-2001"))
@@ -159,21 +164,21 @@ class PurchaseOrderControllerWebMvcTest {
     }
 
     @Test
-    @DisplayName("GET /api/purchase-orders/{id} returns 404 when purchase order does not exist")
+    @DisplayName("GET /api/v1/purchase-orders/{id} returns 404 when purchase order does not exist")
     void getPurchaseOrderById_shouldReturnNotFound_whenPurchaseOrderDoesNotExist() throws Exception {
         when(purchaseOrderService.getPurchaseOrderById(999L))
                 .thenThrow(new ResourceNotFoundException("PurchaseOrder", 999L));
 
-        mockMvc.perform(get("/api/purchase-orders/{id}", 999L))
+        mockMvc.perform(get(ApiPaths.PURCHASE_ORDERS + "/{id}", 999L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value("PurchaseOrder with id 999 not found"))
-                .andExpect(jsonPath("$.path").value("/api/purchase-orders/999"));
+                .andExpect(jsonPath("$.path").value(ApiPaths.PURCHASE_ORDERS + "/999"));
     }
 
     @Test
-    @DisplayName("PUT /api/purchase-orders/{id} returns 200 and updated draft purchase order")
+    @DisplayName("PUT /api/v1/purchase-orders/{id} returns 200 and updated draft purchase order")
     void updatePurchaseOrder_shouldReturnUpdatedPurchaseOrder() throws Exception {
         PurchaseOrderResponse response = new PurchaseOrderResponse(
                 300L,
@@ -234,7 +239,7 @@ class PurchaseOrderControllerWebMvcTest {
                 }
                 """;
 
-        mockMvc.perform(put("/api/purchase-orders/{id}", 300L)
+        mockMvc.perform(put(ApiPaths.PURCHASE_ORDERS + "/{id}", 300L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk())
@@ -246,7 +251,7 @@ class PurchaseOrderControllerWebMvcTest {
     }
 
     @Test
-    @DisplayName("POST /api/purchase-orders/{id}/submit returns 200 and submitted order")
+    @DisplayName("POST /api/v1/purchase-orders/{id}/submit returns 200 and submitted order")
     void submitPurchaseOrder_shouldReturnSubmittedOrder() throws Exception {
         PurchaseOrderResponse response = buildPurchaseOrderResponse(
                 400L,
@@ -261,28 +266,28 @@ class PurchaseOrderControllerWebMvcTest {
 
         when(purchaseOrderService.submitPurchaseOrder(400L)).thenReturn(response);
 
-        mockMvc.perform(post("/api/purchase-orders/{id}/submit", 400L))
+        mockMvc.perform(post(ApiPaths.PURCHASE_ORDERS + "/{id}/submit", 400L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(400))
                 .andExpect(jsonPath("$.status").value("SUBMITTED"));
     }
 
     @Test
-    @DisplayName("POST /api/purchase-orders/{id}/approve returns 400 when business rule fails")
+    @DisplayName("POST /api/v1/purchase-orders/{id}/approve returns 400 when business rule fails")
     void approvePurchaseOrder_shouldReturnBadRequest_whenBusinessRuleFails() throws Exception {
         when(purchaseOrderService.approvePurchaseOrder(500L))
                 .thenThrow(new BusinessRuleException("Only SUBMITTED purchase orders can be approved"));
 
-        mockMvc.perform(post("/api/purchase-orders/{id}/approve", 500L))
+        mockMvc.perform(post(ApiPaths.PURCHASE_ORDERS + "/{id}/approve", 500L))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Only SUBMITTED purchase orders can be approved"))
-                .andExpect(jsonPath("$.path").value("/api/purchase-orders/500/approve"));
+                .andExpect(jsonPath("$.path").value(ApiPaths.PURCHASE_ORDERS + "/500/approve"));
     }
 
     @Test
-    @DisplayName("POST /api/purchase-orders/{id}/cancel returns 200 and cancelled order")
+    @DisplayName("POST /api/v1/purchase-orders/{id}/cancel returns 200 and cancelled order")
     void cancelPurchaseOrder_shouldReturnCancelledOrder() throws Exception {
         PurchaseOrderResponse response = new PurchaseOrderResponse(
                 600L,
@@ -325,7 +330,7 @@ class PurchaseOrderControllerWebMvcTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/purchase-orders/{id}/cancel", 600L)
+        mockMvc.perform(post(ApiPaths.PURCHASE_ORDERS + "/{id}/cancel", 600L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk())
@@ -337,7 +342,7 @@ class PurchaseOrderControllerWebMvcTest {
     }
 
     @Test
-    @DisplayName("POST /api/purchase-orders/{id}/cancel returns 400 when reason is blank")
+    @DisplayName("POST /api/v1/purchase-orders/{id}/cancel returns 400 when reason is blank")
     void cancelPurchaseOrder_shouldReturnBadRequest_whenReasonIsBlank() throws Exception {
         String requestBody = """
                 {
@@ -345,33 +350,33 @@ class PurchaseOrderControllerWebMvcTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/purchase-orders/{id}/cancel", 601L)
+        mockMvc.perform(post(ApiPaths.PURCHASE_ORDERS + "/{id}/cancel", 601L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Validation failed"))
-                .andExpect(jsonPath("$.path").value("/api/purchase-orders/601/cancel"))
+                .andExpect(jsonPath("$.path").value(ApiPaths.PURCHASE_ORDERS + "/601/cancel"))
                 .andExpect(jsonPath("$.validationErrors.reason").value("must not be blank"));
     }
 
     @Test
-    @DisplayName("DELETE /api/purchase-orders/{id} returns 400 when deleting non-draft order")
+    @DisplayName("DELETE /api/v1/purchase-orders/{id} returns 400 when deleting non-draft order")
     void deletePurchaseOrder_shouldReturnBadRequest_whenOrderIsNotDraft() throws Exception {
         doThrow(new BusinessRuleException("Only DRAFT purchase orders can be edited or deleted"))
                 .when(purchaseOrderService).deletePurchaseOrder(700L);
 
-        mockMvc.perform(delete("/api/purchase-orders/{id}", 700L))
+        mockMvc.perform(delete(ApiPaths.PURCHASE_ORDERS + "/{id}", 700L))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("Only DRAFT purchase orders can be edited or deleted"))
-                .andExpect(jsonPath("$.path").value("/api/purchase-orders/700"));
+                .andExpect(jsonPath("$.path").value(ApiPaths.PURCHASE_ORDERS + "/700"));
     }
 
     @Test
-    @DisplayName("GET /api/purchase-orders/summary/status returns 200 and grouped status summary")
+    @DisplayName("GET /api/v1/purchase-orders/summary/status returns 200 and grouped status summary")
     void getPurchaseOrderStatusSummary_shouldReturnSummary() throws Exception {
         List<PurchaseOrderStatusSummaryResponse> summary = List.of(
                 new PurchaseOrderStatusSummaryResponse(PurchaseOrderStatus.DRAFT, 2L),
@@ -380,7 +385,7 @@ class PurchaseOrderControllerWebMvcTest {
 
         when(purchaseOrderService.getPurchaseOrderStatusSummary()).thenReturn(summary);
 
-        mockMvc.perform(get("/api/purchase-orders/summary/status"))
+        mockMvc.perform(get(ApiPaths.PURCHASE_ORDERS + "/summary/status"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("DRAFT"))
                 .andExpect(jsonPath("$[0].count").value(2))
