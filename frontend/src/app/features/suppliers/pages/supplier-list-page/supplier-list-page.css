@@ -62,6 +62,11 @@
   border-color: #94a3b8;
 }
 
+.compact-action {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+}
+
 .state-card,
 .table-card {
   background: #ffffff;
@@ -121,6 +126,11 @@
   color: #0f172a;
 }
 
+.actions-column,
+.actions-cell {
+  text-align: right;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -148,5 +158,10 @@
   .primary-action,
   .secondary-action {
     width: 100%;
+  }
+
+  .actions-column,
+  .actions-cell {
+    text-align: left;
   }
 }

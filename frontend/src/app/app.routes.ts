@@ -25,6 +25,10 @@ export const routes: Routes = [
     component: SupplierFormPageComponent
   },
   {
+    path: 'suppliers/:id/edit',
+    component: SupplierFormPageComponent
+  },
+  {
     path: 'purchase-orders',
     component: PurchaseOrderListPageComponent
   },

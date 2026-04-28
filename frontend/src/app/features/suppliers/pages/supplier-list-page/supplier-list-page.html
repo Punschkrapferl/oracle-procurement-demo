@@ -64,6 +64,7 @@
             <th>Name</th>
             <th>Contact Email</th>
             <th>Status</th>
+            <th class="actions-column">Actions</th>
           </tr>
           </thead>
           <tbody>
@@ -82,6 +83,15 @@
                   >
                     {{ supplier.active ? 'Active' : 'Inactive' }}
                   </span>
+                </td>
+                <td class="actions-cell">
+                  <a
+                    [routerLink]="['/suppliers', supplier.id, 'edit']"
+                    class="secondary-action compact-action"
+                    data-testid="supplier-edit-link"
+                  >
+                    Edit
+                  </a>
                 </td>
               </tr>
             }

@@ -1,10 +1,8 @@
 <section class="page" data-testid="supplier-form-page">
   <div class="page-header">
     <div>
-      <h2>New Supplier</h2>
-      <p>
-        Create a supplier that can later be used in the procurement workflow.
-      </p>
+      <h2>{{ pageTitle() }}</h2>
+      <p>{{ pageDescription() }}</p>
     </div>
 
     <a routerLink="/suppliers" class="secondary-action" data-testid="supplier-back-link">
@@ -14,13 +12,54 @@
 
   <div class="form-card">
     <div class="form-card-header">
-      <h3>Supplier Details</h3>
-      <p>Fill in the supplier information and submit it to the backend.</p>
+      <h3>{{ formCardTitle() }}</h3>
+      <p>{{ formCardDescription() }}</p>
     </div>
+
+    @if (isEditMode() && isLoadingSupplier()) {
+      <div class="alert" role="status" data-testid="supplier-edit-loading">
+        <strong>Loading supplier...</strong>
+        <p>The frontend is requesting the existing supplier before editing.</p>
+      </div>
+    }
+
+    @if (loadErrorMessage()) {
+      <div class="alert alert-error" role="alert" data-testid="supplier-load-error">
+        <strong>Could not load supplier.</strong>
+        <p>{{ loadErrorMessage() }}</p>
+
+        @if (isEditMode()) {
+          <button
+            type="button"
+            class="secondary-action inline-action"
+            (click)="loadSupplierForEdit()"
+            data-testid="supplier-load-retry-button"
+          >
+            Try Again
+          </button>
+        }
+      </div>
+    }
+
+    @if (isEditMode() && loadedSupplier(); as supplier) {
+      <div class="alert edit-context" role="status" data-testid="supplier-edit-context">
+        <strong>Editing supplier {{ supplier.supplierCode }}</strong>
+        <p>
+          Supplier ID {{ supplier.id }} · Current status
+          {{ supplier.active ? 'Active' : 'Inactive' }}
+        </p>
+      </div>
+    }
 
     @if (submitErrorMessage()) {
       <div class="alert alert-error" role="alert" data-testid="supplier-submit-error">
-        <strong>Could not create supplier.</strong>
+        <strong>
+          @if (isEditMode()) {
+            <span>Could not update supplier.</span>
+          } @else {
+            <span>Could not create supplier.</span>
+          }
+        </strong>
         <p>{{ submitErrorMessage() }}</p>
       </div>
     }
@@ -100,7 +139,7 @@
             </div>
           }
         </div>
-
+        <div></div>
         <div class="form-field form-field-full">
           <label class="checkbox-field" for="active">
             <input
@@ -115,21 +154,18 @@
       </div>
 
       <div class="form-actions">
-        <a routerLink="/suppliers" class="secondary-action" data-testid="supplier-cancel-link">
+        <a routerLink="/suppliers" id="cancelForm" class="secondary-action" data-testid="supplier-cancel-link">
           Cancel
         </a>
 
         <button
           type="submit"
+          id="submitForm"
           class="primary-action"
-          [disabled]="isSubmitting()"
+          [disabled]="isSubmitting() || isLoadingSupplier()"
           data-testid="supplier-submit-button"
         >
-          @if (isSubmitting()) {
-            <span>Creating Supplier...</span>
-          } @else {
-            <span>Create Supplier</span>
-          }
+          <span>{{ submitButtonLabel() }}</span>
         </button>
       </div>
     </form>
