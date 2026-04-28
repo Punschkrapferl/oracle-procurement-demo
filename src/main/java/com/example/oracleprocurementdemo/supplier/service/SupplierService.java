@@ -84,6 +84,18 @@ public class SupplierService {
     public void deleteSupplier(Long id) {
         Supplier supplier = findSupplierById(id);
 
+        /*
+         * Procurement/audit rule:
+         *
+         * A supplier may only be physically deleted if it has never been used
+         * in a purchase order.
+         *
+         * Even cancelled purchase orders are business history. They should stay
+         * in the system for traceability instead of being deleted just so the
+         * supplier can be deleted.
+         *
+         * If a supplier should no longer be used, update active=false instead.
+         */
         if (purchaseOrderRepository.existsBySupplier_Id(id)) {
             throw new ResourceConflictException(
                     "Supplier cannot be deleted because purchase order history exists for it. Deactivate the supplier instead."

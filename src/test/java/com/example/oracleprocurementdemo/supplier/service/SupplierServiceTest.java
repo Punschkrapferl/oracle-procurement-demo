@@ -195,6 +195,36 @@ class SupplierServiceTest {
     }
 
     @Test
+    @DisplayName("Should allow deactivating supplier even when purchase order history may exist")
+    void shouldAllowDeactivatingSupplierEvenWhenPurchaseOrderHistoryMayExist() {
+        Supplier existingSupplier = buildSupplier(70L, "SUP-9001", "Supplier With History", "history@supplier.com", true);
+
+        UpdateSupplierRequest request = new UpdateSupplierRequest();
+        request.setSupplierCode("SUP-9001");
+        request.setName("Supplier With History");
+        request.setContactEmail("history@supplier.com");
+        request.setActive(false);
+
+        when(supplierRepository.findById(70L)).thenReturn(Optional.of(existingSupplier));
+        when(supplierRepository.findBySupplierCode("SUP-9001")).thenReturn(Optional.of(existingSupplier));
+
+        SupplierResponse response = supplierService.updateSupplier(70L, request);
+
+        assertNotNull(response);
+        assertEquals(70L, response.getId());
+        assertEquals(Boolean.FALSE, response.getActive());
+
+        verify(supplierRepository).findById(70L);
+        verify(supplierRepository).findBySupplierCode("SUP-9001");
+
+        /*
+         * Deactivation is the correct alternative to deletion.
+         * It should not require deleting or checking purchase order history.
+         */
+        verify(purchaseOrderRepository, never()).existsBySupplier_Id(70L);
+    }
+
+    @Test
     @DisplayName("Should reject update when supplier does not exist")
     void shouldRejectUpdateWhenSupplierDoesNotExist() {
         UpdateSupplierRequest request = new UpdateSupplierRequest();
@@ -259,7 +289,7 @@ class SupplierServiceTest {
 
     @Test
     @DisplayName("Should reject delete when any purchase order history exists")
-    void shouldRejectDeleteWhenPurchaseOrderHistoryExists() {
+    void shouldRejectDeleteWhenAnyPurchaseOrderHistoryExists() {
         Supplier supplier = buildSupplier(50L, "SUP-7001", "Protected Supplier", "protected@sup.com", true);
 
         when(supplierRepository.findById(50L)).thenReturn(Optional.of(supplier));
