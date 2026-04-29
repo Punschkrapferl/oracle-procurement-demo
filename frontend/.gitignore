@@ -37,6 +37,7 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+/playwright-report-docker/
 
 # System files
 .DS_Store
