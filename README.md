@@ -1,35 +1,36 @@
 # Oracle Procurement Demo
 
-A full-stack procurement workflow project built with **Java 21**, **Spring Boot 4**, **Oracle Database**, **Spring Data JPA**, **Flyway**, **Angular**, **Swagger/OpenAPI**, and **Docker**.
+A full-stack procurement workflow demo built with **Java 21**, **Spring Boot 4**, **Oracle Database**, **Spring Data JPA**, **Flyway**, **Angular 20**, **Swagger/OpenAPI**, and **Docker**.
 
-The application models a small procurement workflow around **suppliers** and **purchase orders**. The focus is on clean backend structure, business rules, validation, persistence, testing, and reproducible local setup.
+The project models a small procurement workflow around **suppliers** and **purchase orders**. It is designed as a recruiter-friendly portfolio project with clear business rules, validation, persistence, tests, Docker setup, and a working Angular frontend.
 
 ---
 
-## 1. Overview
+## Overview
 
-This project includes:
+The application supports:
 
-- Supplier CRUD
-- Purchase order CRUD
-- Purchase order line items
-- Purchase order workflow actions:
+- supplier management
+- purchase order management
+- purchase order line items
+- workflow actions:
   - submit
   - approve
   - cancel
-- Purchase order status summary endpoint
-- Flyway database migrations
-- Centralized validation and error handling
-- Swagger/OpenAPI documentation
-- Separate **demo** and **development** runtime paths
-- Angular frontend with dashboard, supplier, and purchase order pages
-- Dockerized frontend served through nginx
+- purchase order status summary
+- Oracle-backed persistence with Flyway migrations
+- optional demo seed data
+- backend unit, controller, integration, and SQL seed tests
+- Angular frontend with dashboard, suppliers, and purchase order screens
+- frontend unit and Playwright end-to-end tests
+- separate demo and development runtime paths
 
 ---
 
-## 2. Tech stack
+## Tech stack
 
 ### Backend
+
 - Java 21
 - Spring Boot 4
 - Spring Web MVC
@@ -40,301 +41,404 @@ This project includes:
 - SpringDoc OpenAPI / Swagger UI
 - JUnit 5
 - Mockito
+- AssertJ
+- Maven
 
 ### Frontend
 
-- Angular
+- Angular 20
 - TypeScript
 - Angular standalone components
 - Angular signals
-- HTML
+- Zoneless change detection
+- Reactive forms
 - CSS
+- Karma / Jasmine
+- Playwright
 - nginx
 
 ### Infrastructure
 
-- Docker 
+- Docker
 - Docker Compose
-- Maven
+- Maven Wrapper
 - npm
 
 ---
 
-## 3. Architecture overview
+## Screenshots
+
+### Dashboard
+
+The dashboard shows purchase order status counts, recent purchase orders, and recently cancelled purchase orders.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Suppliers
+
+The supplier list shows supplier master data and whether each supplier is active or inactive.
+
+![Suppliers](docs/screenshots/suppliers-list.png)
+
+### Purchase Orders
+
+The purchase order list shows order numbers, suppliers, requesters, dates, total amounts, statuses, and available actions.
+
+![Purchase Orders](docs/screenshots/purchase-orders-list.png)
+
+### Purchase Order Detail
+
+The detail page shows purchase order metadata, line items, total amount, status, and cancellation history.
+
+![Purchase Order Detail](docs/screenshots/purchase-order-detail-cancelled.png)
+
+### Swagger / OpenAPI
+
+The backend exposes interactive API documentation through Swagger UI.
+
+![Swagger UI](docs/screenshots/swagger-ui.png)
+
+---
+
+## Architecture
 
 ### Backend
 
-![Architecture Diagram_Backend](docs/backend_architecture.png)
+![Backend Architecture](docs/screenshots/backend_architecture.png)
 
-### Backend structure and data flow
+The backend follows a layered Spring Boot architecture:
 
-The Spring Boot backend follows a layered feature-based structure:
+```text
+External Clients
+  ↓
+REST Controllers
+  ↓
+Service Layer / Business Rules
+  ↓
+Spring Data JPA Repositories
+  ↓
+Oracle Database
+```
 
-- Endpoints are exposed through REST controllers
-- Each business feature (`supplier`, `purchaseorder`) is organized into controller, dto, entity, repository, and service packages
-- Controllers handle HTTP requests and responses
-- Services contain business rules, validation, and workflow logic
-- Repositories handle persistence through Spring Data JPA
-- Flyway manages database schema migrations
-- Oracle Database stores the persistent application data
+Flyway manages the database schema separately through versioned migrations.
 
-Data flow:
+More backend details are documented in:
 
-HTTP request → REST controller → Service layer → Repository → Oracle DB → Repository result → Service layer → REST response
-
-For workflow actions, the flow is the same, with business rules enforced in the service layer before data is persisted or returned.
-
-A purchase order starts in `DRAFT` status and can move through a small workflow.
-
-Example lifecycle:
-
-`DRAFT -> SUBMITTED -> APPROVED`
-
-Cancellation is also supported according to the business rules implemented in the service layer.
+- [Backend details](docs/backend_details.md)
+- [API overview](docs/api_overview.md)
 
 ### Frontend
 
-![Architecture_Diagram_Frontend](docs/frontend_architecture.png)
+![Frontend Architecture](docs/screenshots/frontend_architecture.png)
 
-### Frontend structure and data flow
+The Angular frontend communicates with the backend through REST endpoints.
 
-The Angular frontend follows a feature-based structure:
+The Angular frontend calls the backend through:
 
-- Routing is handled in `app.routes.ts`
-- Each feature (dashboard, suppliers, purchase orders) contains its own pages
-- Pages act as UI containers and interact with API services
-- API services handle HTTP communication with the backend
-- Models provide type-safe request/response structures
+```text
+/api/v1
+```
 
-Data flow:
+In local development, Angular proxies `/api` requests to the Spring Boot backend.
 
-User interaction → Page component → API service → HttpClient → Backend → Response → UI update
+In Docker frontend runtime, nginx serves the Angular production build and proxies `/api/` requests to the Spring Boot backend.
 
-### Frontend and backend interaction
+More frontend details are documented in:
 
-The project follows a simple full-stack architecture:
-
-- the **Angular frontend** provides the user interface
-- the frontend communicates with the **Spring Boot backend** through REST endpoints under `/api`
-- the **Spring Boot backend** contains the business logic, validation, workflow rules, and persistence layer
-- the backend connects to the **Oracle database**
-- the frontend can be served locally with Angular dev tools or containerized with **nginx**
+- [Frontend details](docs/frontend_details.md)
 
 ---
 
-## 4. Project structure
+## Main business rules
 
-### Backend
+- Purchase orders can only be created for active suppliers.
+- Supplier codes must be unique.
+- Purchase order numbers must be unique.
+- Duplicate purchase order line numbers are rejected.
+- Only `DRAFT` purchase orders can be edited or deleted.
+- Only `DRAFT` purchase orders can be submitted.
+- Only `SUBMITTED` purchase orders can be approved.
+- Only `APPROVED` purchase orders can be cancelled.
+- Cancelled purchase orders require a cancellation reason and timestamp.
+- Suppliers with purchase order history cannot be deleted.
+- Suppliers with history should be deactivated instead of deleted.
+
+Purchase order workflow:
 
 ```text
-src
-├─ main
-│  ├─ java/com/example/oracleprocurementdemo
-│  │  ├─ common/exception
-│  │  ├─ config
-│  │  ├─ supplier
-│  │  │  ├─ controller
-│  │  │  ├─ dto
-│  │  │  ├─ entity
-│  │  │  ├─ repository
-│  │  │  └─ service
-│  │  └─ purchaseorder
-│  │     ├─ controller
-│  │     ├─ dto
-│  │     ├─ entity
-│  │     ├─ repository
-│  │     └─ service
-│  └─ resources
-│     ├─ db/migration
-│     ├─ application.yml
-│     └─ application-dev.yml
-└─ test
-   ├─ java/com/example/oracleprocurementdemo
-   └─ resources
-      ├─ application-test.yml
-      └─ application-test-dev.yml
+DRAFT -> SUBMITTED -> APPROVED -> CANCELLED
 ```
 
-### Frontend 
+---
+
+## Project structure
 
 ```text
-frontend
+oracle-procurement-demo
+├─ docs
+│  ├─ screenshots
+│  │  ├─ backend_architecture.png
+│  │  ├─ frontend_architecture.png
+│  │  ├─ dashboard.png
+│  │  ├─ suppliers-list.png
+│  │  ├─ purchase-orders-list.png
+│  │  ├─ purchase-order-detail-cancelled.png
+│  │  └─ swagger-ui.png
+│  ├─ backend_details.md
+│  ├─ frontend_details.md
+│  └─ api_overview.md
+├─ frontend
+│  ├─ src
+│  ├─ e2e
+│  ├─ Dockerfile
+│  ├─ docker-compose.yml
+│  ├─ nginx.conf
+│  ├─ proxy.conf.json
+│  ├─ package.json
+│  ├─ angular.json
+│  └─ playwright.config.ts
+├─ scripts
+│  ├─ demo
+│  └─ dev
 ├─ src
-│  ├─ app
-│  │  ├─ core
-│  │  │  ├─ api
-│  │  │  └─ config
-│  │  ├─ models
-│  │  └─ features
-│  │     ├─ dashboard
-│  │     ├─ suppliers
-│  │     └─ purchase-orders
-│  ├─ environments
-│  ├─ index.html
-│  └─ styles.css
-├─ e2e
-├─ public
-├─ dist
-│  └─ frontend
-│     └─ browser
-├─ Dockerfile
+│  ├─ main
+│  │  ├─ java/com/example/oracleprocurementdemo
+│  │  └─ resources
+│  │     ├─ db/migration
+│  │     ├─ db/demo
+│  │     ├─ application.yml
+│  │     └─ application-dev.yml
+│  └─ test
+│     ├─ java/com/example/oracleprocurementdemo
+│     └─ resources
 ├─ docker-compose.yml
-├─ nginx.conf
-├─ proxy.conf.json
-├─ package.json
-├─ playwright.config.ts
-└─ angular.json
+├─ docker-compose-dev.yml
+├─ Dockerfile
+├─ pom.xml
+└─ README.md
 ```
 
 ---
 
-## 5. Runtime paths
+## Runtime modes
 
-The project currently supports separate runtime modes.
+The project separates demo and development runtime paths.
 
 ### Demo runtime
 
-The demo runtime is intended for showing the full application flow.
-* Oracle runs in Docker
-* the backend runs locally or in its own demo path, depending on setup
-* the frontend can run locally or in Docker
-* the frontend Docker setup uses nginx
-* the frontend proxies `/api` to the backend
+Used for showing the project as a portfolio demo.
+
+- Oracle runs in Docker.
+- Backend runs through the demo Docker Compose setup.
+- Environment variables use `DEMO_*`.
+- Oracle is exposed on host port `1522`.
+- Backend runs on port `8080`.
+
+Main files:
+
+```text
+docker-compose.yml
+.env.example
+.env
+scripts/demo/run-demo.sh
+scripts/demo/stop-demo.sh
+scripts/demo/reset-demo-db.sh
+scripts/demo/seed-demo-data.sh
+scripts/demo/run-demo-test.sh
+```
 
 ### Development runtime
 
-The development runtime is intended for active implementation work.
-* Oracle runs in Docker
-* the backend runs locally with Spring Boot
-* the frontend runs locally with Angular
-* the active Spring profile is dev
+Used for active development.
 
----
+- Oracle runs in Docker.
+- Backend usually runs locally with Spring Boot.
+- Environment variables use `DEV_*`.
+- Oracle is exposed on host port `1521`.
+- Backend runs on `DEV_APP_PORT`.
 
-## 6. Configuration
-
-The project uses separate configuration for backend runtime modes and a dedicated frontend setup.
-
-### Environment files
-
-* `.env.example`
-  template for the demo setup
-
-* `.env.demo`
-  local demo runtime configuration
-
-* `.env`
-  local development runtime configuration
-
-### Spring config files
-
-* `application.yml`
-  default/demo runtime using `DEMO_*`
-
-* `application-dev.yml`
-  development runtime using `DEV_*`
-
-* `application-test.yml`
-  demo test configuration
-
-* `application-test-dev.yml`
-  development test configuration
-
-### Frontend runtime notes
-- local frontend development runs with Angular tooling
-- Docker frontend is served with nginx
-- Angular build output is generated into:
+Main files:
 
 ```text
-dist/frontend/browser
+docker-compose-dev.yml
+.env.dev
+scripts/dev/run-dev.sh
+scripts/dev/stop-dev.sh
+scripts/dev/reset-dev-db.sh
+scripts/dev/run-dev-test.sh
 ```
 
 ---
 
-## 7. Quick start
+## Quick start
 
-### 7.1 Demo runtime
+### Demo backend
 
-This is the simplest way to run the project.
+Prerequisites:
 
-#### Prerequisites
+- Docker Desktop installed and running
+- port `8080` free
+- port `1522` free
 
-* Docker Desktop installed and running
-* port `8080` free
-* port `1522` free
+Start demo backend:
 
-#### Start
-
-Clone repo:
 ```bash
 git clone https://github.com/Punschkrapferl/oracle-procurement-demo
 cd oracle-procurement-demo
-```
 
-Start backend demo:
-```bash
-cp .env.example .env.demo
+cp .env.example .env
 ./scripts/demo/run-demo.sh
 ```
 
-#### Open API documentation
+Open Swagger UI:
 
-* Swagger UI: `http://localhost:8080/swagger-ui.html`
-* OpenAPI docs: `http://localhost:8080/v3/api-docs`
-
-#### Frontend Docker runtime
-
-The frontend can also be run in Docker and served through nginx.
-
-##### Prerequisites
-
-* Docker Desktop installed and running
-* backend already reachable
-* port 4200 free
-
-Start frontend in Docker:
-
-```bash 
-cd frontend
-docker compose up -d
+```text
+http://localhost:8080/swagger-ui.html
 ```
 
-The Dockerized frontend runs on:
-- `http://localhost:4200`
-In this setup, nginx handles the frontend and proxies `/api` requests to the backend.
+Open OpenAPI JSON:
 
-#### Stop
+```text
+http://localhost:8080/v3/api-docs
+```
+
+Stop demo backend:
 
 ```bash
 ./scripts/demo/stop-demo.sh
 ```
 
-#### Reset demo database
+Reset demo database:
 
 ```bash
 ./scripts/demo/reset-demo-db.sh
 ./scripts/demo/run-demo.sh
 ```
 
-#### Run demo tests for backend
+Run demo backend tests:
+
 ```bash
 ./scripts/demo/run-demo-test.sh
 ```
 
-#### Run Angular unit test suite 
+Load optional demo seed data:
+
+```bash 
+./scripts/demo/seed-demo-data.sh
+```
+---
+
+### Development backend
+
+Prerequisites:
+
+- Docker Desktop installed and running
+- Java 21 installed
+- Maven Wrapper available
+- port `8080` free
+- port `1521` free
+
+Create a local `.env.dev` file with the `DEV_*` variables, then run:
+
+```bash
+./scripts/dev/run-dev.sh
+```
+
+Stop development backend:
+
+```bash
+./scripts/dev/stop-dev.sh
+```
+
+Reset development database:
+
+```bash
+./scripts/dev/reset-dev-db.sh
+```
+
+Run development backend tests:
+
+```bash
+./scripts/dev/run-dev-test.sh
+```
+
+---
+
+## Frontend quick start
+
+### Local Angular runtime
+
+Prerequisites:
+
+- Node.js installed
+- npm installed
+- backend running on `http://localhost:8080`
+
+Start frontend:
+
 ```bash
 cd frontend
 npm install
+npm start
+```
+
+The frontend runs on:
+
+```text
+http://localhost:4200
+```
+
+The Angular proxy forwards API calls from:
+
+```text
+/api
+```
+
+to the backend running on:
+
+```text
+http://localhost:8080
+```
+
+Run Angular unit tests:
+
+```bash
+cd frontend
 npm test
 ```
 
-#### Run e2e-tests for frontend
-```bash 
+Run Playwright end-to-end tests:
+
+```bash
 cd frontend
-npx playwright test
+npm run test:e2e
 ```
 
-#### Stop frontend Docker container
+### Frontend Docker runtime
+
+The frontend can also run as a Dockerized nginx build.
+
+Prerequisites:
+
+- Docker Desktop installed and running
+- backend running on `http://localhost:8080`
+- port `4200` free
+
+Start frontend container:
+
+```bash
+cd frontend
+docker compose up -d
+```
+
+The Dockerized frontend runs on:
+
+```text
+http://localhost:4200
+```
+
+Stop frontend container:
+
 ```bash
 cd frontend
 docker compose down
@@ -342,317 +446,165 @@ docker compose down
 
 ---
 
-### 7.2 Development runtime
+## Demo seed data
 
-#### Backend local development
-
-##### Prerequisites
-
-* Docker Desktop installed and running
-* Java 21 installed
-* Maven wrapper available
-* port `8080` free
-* port `1521` free
-
-##### Start
-
-Create a local `.env` file with the `DEV_*` variables, then run:
-
-```bash
-./scripts/dev/run-dev.sh
-```
-
-Open API documentation:
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
-- OpenAPI docs: `http://localhost:8080/v3/api-docs`
-
-##### Stop
-
-```bash
-./scripts/dev/stop-dev.sh
-```
-
-#### Reset development database
-
-```bash
-./scripts/dev/reset-dev-db.sh
-```
-
-#### Run development tests
-
-```bash
-./scripts/dev/run-dev-test.sh
-```
-
-#### Frontend local development
-
-This path is useful when working on the Angular UI.
-
-##### Prerequisites
-- Node.js installed
-- npm installed
-- backend already running on `http://localhost:8080`
-
-Start frontend:
-```bash 
-cd frontend
-npm install
-npm start
-```
-
-The frontend runs on:
-- `http://localhost:4200`
-
-In local development, the Angular frontend talks to the backend running on:
-- `http://localhost:8080`
-
-Run Angular unit test suite:
-```bash
-cd frontend
-npm install
-npm test
-```
-
-Run end-to-end tests:
-```bash 
-cd frontend
-npx playwright test 
-```
-
-Stop the frontend with:
-```text
-Ctrl + C
-```
-
----
-
-## 8. Docker setup
-
-### Backend and database files
-
-* `docker-compose.yml`
-* `docker-compose-dev.yml`
-* `Dockerfile`
-* `.dockerignore`
-
-### Frontend files
-
-* `frontend/docker-compose.yml`
-* `frontend/Dockerfile`
-* `frontend/nginx.conf`
-* `frontend/.dockerignore`
-
-### Runtime behavior
-
-The project uses Docker in different ways depending on the runtime path:
-
-#### Demo runtime
-- Oracle runs in Docker
-- the backend demo setup is started through the demo scripts and compose configuration
-- the frontend can be started separately from the `frontend` folder with Docker Compose
-- nginx serves the Angular production build and proxies `/api` requests to the backend
-
-#### Development runtime
-- Oracle runs in Docker
-- the backend runs locally with Spring Boot
-- the frontend usually runs locally with Angular dev tooling
-- the frontend can also be started in Docker if needed
-
-### Frontend container behavior
-
-The Dockerized frontend serves the Angular production build through nginx.
-
-Angular build output:
+The project includes optional demo seed data:
 
 ```text
-dist/frontend/browser
-````
-
-The frontend is exposed on:
-
-* `http://localhost:4200`
-
-### Container networking
-
-The frontend does not connect to Oracle directly.
-
-The communication flow is:
-
-```text
-Browser → Angular Frontend → Spring Boot Backend → Oracle Database
+src/main/resources/db/demo/V100__seed_demo_data.sql
 ```
 
-When the frontend runs in Docker:
+This file is intentionally stored under `db/demo`, not `db/migration`.
 
-* nginx serves the Angular app
-* requests to `/api` are proxied to the backend
+That means Flyway does **not** run it automatically.
 
-When the backend connects to Oracle inside Docker, it uses the Oracle service name and internal Oracle port, for example:
+The seed script creates:
 
-```text
-jdbc:oracle:thin:@oracle:1521/FREEPDB1
+- 4 suppliers
+- 4 purchase orders
+- 8 purchase order lines
+- one purchase order in each status:
+  - `DRAFT`
+  - `SUBMITTED`
+  - `APPROVED`
+  - `CANCELLED`
+
+The script is useful for showing the dashboard, supplier list, purchase order list, and workflow detail pages with realistic demo data.
+
+### Load demo seed data
+
+Start the demo environment first:
+
+```bash
+./scripts/demo/run-demo.sh
 ```
 
-Important distinction:
+Then load the optional seed data:
 
-* `1521` is the Oracle port inside Docker
-* `1522` is the host port exposed for local machine access in the demo runtime
-* `4200` is the frontend port exposed to the browser
+```bash
+./scripts/demo/seed-demo-data.sh
+```
 
----
+The seed script is re-runnable. It deletes and reinserts only the fixed demo records defined in the script, not arbitrary business data.
 
-## 9. API endpoints
+If the script is not executable yet, run:
 
-### Suppliers
+```bash
+chmod +x scripts/demo/seed-demo-data.sh
+```
 
-* `GET /api/suppliers`
-* `GET /api/suppliers/{id}`
-* `POST /api/suppliers`
-* `PUT /api/suppliers/{id}`
-* `DELETE /api/suppliers/{id}`
+### Seed data test
 
-### Purchase orders
+The seed SQL is covered by:
 
-* `GET /api/purchase-orders`
-* `GET /api/purchase-orders/{id}`
-* `POST /api/purchase-orders`
-* `PUT /api/purchase-orders/{id}`
-* `DELETE /api/purchase-orders/{id}`
+```text
+src/test/java/com/example/oracleprocurementdemo/demo/DemoSeedDataSqlTest.java
+```
 
-### Workflow actions
-
-* `POST /api/purchase-orders/{id}/submit`
-* `POST /api/purchase-orders/{id}/approve`
-* `POST /api/purchase-orders/{id}/cancel`
-
-### Summary
-
-* `GET /api/purchase-orders/summary/status`
-
-### Frontend coverage
-
-The Angular frontend uses these backend endpoints to support:
-
-* supplier list and create/edit flows
-* purchase order list, detail, and create/edit flows
-* workflow actions such as submit, approve, and cancel
-* dashboard and overview pages
-
-This section is intentionally a high-level API overview. Full request and response details can be explored through Swagger UI.
-
----
-
-## 10. Example flow
-
-A typical application flow looks like this:
-
-1. Start Oracle
-2. Start the backend
-3. Start the frontend
-4. Create a supplier
-5. Create a purchase order linked to that supplier
-6. Submit the purchase order
-7. Approve or cancel it
-8. View the updated state in the frontend
-9. Check the status summary endpoint if needed
-
----
-
-## 11. Testing
-
-The project includes backend tests, Angular unit tests, and frontend end-to-end tests.
-
-### Backend tests
-
-The backend test setup covers several layers:
-
-* service unit tests with Mockito
-* Web MVC controller tests
-* integration tests with Oracle-backed application setup
-
-Run backend tests for the demo-oriented path:
+Run backend demo tests through the demo script:
 
 ```bash
 ./scripts/demo/run-demo-test.sh
 ```
 
-Run backend tests for the development-oriented path:
+The test script loads the required Oracle database credentials from `.env`.
+
+More details are in:
+
+- [Backend details](docs/backend_details.md#optional-demo-seed-data)
+
+---
+
+## API overview
+
+All backend endpoints are versioned under:
+
+```text
+/api/v1
+```
+
+Main endpoint groups:
+
+- `/api/v1/suppliers`
+- `/api/v1/purchase-orders`
+- `/api/v1/purchase-orders/{id}/submit`
+- `/api/v1/purchase-orders/{id}/approve`
+- `/api/v1/purchase-orders/{id}/cancel`
+- `/api/v1/purchase-orders/summary/status`
+
+Full endpoint documentation:
+
+- [API overview](docs/api_overview.md)
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+
+---
+
+## Testing
+
+### Backend tests
+
+The backend includes:
+
+- service unit tests with Mockito
+- Web MVC controller tests
+- Oracle-backed integration tests
+- optional demo seed SQL test
+
+Run backend tests:
+
+```bash
+./scripts/demo/run-demo-test.sh
+```
+
+or:
 
 ```bash
 ./scripts/dev/run-dev-test.sh
 ```
 
-### Frontend unit tests
+### Frontend tests
 
-Frontend unit testing covers Angular component tests and service tests.
-
-Typical examples include:
-
-* page/component tests
-* app shell tests
-* API service tests
-
-Run Angular unit tests with:
+Run Angular unit tests:
 
 ```bash
 cd frontend
-npm install
 npm test
 ```
 
-### Frontend end-to-end tests
-
-End-to-end tests use Playwright and validate the frontend workflow against the running backend.
-
-Typical coverage includes:
-
-* navigation
-* supplier flow
-* purchase order flow
-* smoke tests
-
-Run Playwright tests with:
+Run Playwright end-to-end tests:
 
 ```bash
 cd frontend
-npx playwright test
+npm run test:e2e
 ```
 
-Important note:
+---
 
-The current e2e tests create test data and do not automatically clean it up afterward. Because of that, the UI may accumulate Playwright-created suppliers and purchase orders over time.
+## Notes
 
-That is acceptable during development, but cleaner approaches would be:
-
-* resetting the test database before each e2e run
-* cleaning up created test data after execution
-* using a dedicated test environment or test database
+- This is a demonstration project, not a full procurement platform.
+- The scope is intentionally small and practical.
+- Oracle is included as part of the persistence setup.
+- The backend API is versioned under `/api/v1`.
+- Swagger/OpenAPI is included for convenient API exploration.
+- The optional demo seed file is not an automatic Flyway migration.
+- Demo and development paths are intentionally separated.
+- The frontend can run locally through the Angular dev server or as a Dockerized nginx build.
+- The frontend and backend are developed separately but work together as one full-stack application.
 
 ---
 
-## 12. Notes
+## Future improvements
 
-* This is a demonstration project, not a full procurement platform
-* The scope is intentionally small and practical
-* Oracle is included as part of the persistence setup
-* Swagger/OpenAPI is included for convenient API exploration
-* The frontend and backend are developed separately but work together as one full-stack application
-* The frontend can run either locally with Angular tooling or in Docker with nginx
-* Demo and development paths are intentionally separated to keep runtime behavior explicit
+Possible future improvements:
 
----
-
-## 13. Future improvements
-
-Potential next steps outside the current scope:
-
-* authentication and authorization
-* audit logging
-* richer filtering, sorting, and pagination
-* CI pipeline automation
-* improved dashboard analytics
-* dedicated isolated frontend test environment
-* deployment beyond local Docker usage
+- authentication and authorization
+- audit logging
+- richer filtering, sorting, and pagination
+- CI pipeline automation
+- dedicated isolated frontend test environment
+- deployment beyond local Docker usage
+- more advanced dashboard filtering and analytics
 
 ---
 
@@ -663,7 +615,7 @@ MIT License
 Copyright (c) 2026 Punschkrapferl
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
+of this software and associated documentation files (the Software), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is furnished
@@ -672,11 +624,10 @@ to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+THE SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-

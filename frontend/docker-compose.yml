@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: punschkrapferl23/oracle-procurement-demo-frontend:1.0.0
+    image: punschkrapferl23/oracle-procurement-demo-frontend:1.0.1
     container_name: oracle-procurement-demo-frontend
     ports:
       - "4200:80"
