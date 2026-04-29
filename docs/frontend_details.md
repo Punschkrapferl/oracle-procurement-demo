@@ -4,7 +4,7 @@ This document explains the Angular frontend of the Oracle Procurement Demo proje
 
 The frontend is an Angular 20 application that provides a small procurement user interface for suppliers, purchase orders, purchase order line items, workflow actions, and dashboard summaries.
 
-It uses TypeScript, standalone components, Angular signals, reactive forms, typed API services, Karma/Jasmine unit tests, Playwright end-to-end tests, and an optional Docker/nginx runtime.
+It uses TypeScript, standalone components, Angular signals, reactive forms, typed API services, Karma/Jasmine unit tests, Playwright end-to-end tests, a Dockerized Playwright smoke test, and an optional Docker/nginx runtime.
 
 ---
 
@@ -23,6 +23,7 @@ It demonstrates:
 - dashboard summary rendering
 - loading, empty, success, and error states
 - unit tests and end-to-end tests
+- Dockerized frontend smoke testing against the nginx runtime
 - local and Dockerized runtime options
 
 The frontend does not connect directly to Oracle. All data access goes through the Spring Boot REST API.
@@ -131,7 +132,15 @@ In this setup:
 
 - Angular is built as a static production bundle.
 - nginx serves the generated frontend files.
-- nginx proxies `/api/` requests to the backend.
+- nginx proxy's `/api/` requests to the backend.
+
+The backend must be running on:
+
+```text
+http://localhost:8080
+```
+
+before the Dockerized frontend smoke test is executed.
 
 ---
 
@@ -146,6 +155,8 @@ frontend
 │  ├─ purchase-orders.spec.ts
 │  ├─ smoke.spec.ts
 │  └─ suppliers.spec.ts
+├─ e2e-docker
+│  └─ docker-smoke.spec.ts
 ├─ src
 │  ├─ app
 │  │  ├─ core
@@ -171,11 +182,13 @@ frontend
 ├─ nginx.conf
 ├─ package.json
 ├─ playwright.config.ts
+├─ playwright.docker.config.ts
 ├─ proxy.conf.json
+├─ tsconfig.e2e.json
 └─ tsconfig.json
 ```
 
-Generated folders such as `dist`, `.angular`, `node_modules`, `playwright-report`, and `test-results` are not part of the source architecture.
+Generated folders such as `dist`, `.angular`, `node_modules`, `playwright-report`, `playwright-report-docker`, and `test-results` are not part of the source architecture.
 
 ---
 
@@ -192,7 +205,7 @@ src/app/app.css
 The app shell contains:
 
 - sidebar navigation
-- topbar
+- top-bar
 - main content area
 - router outlet
 
@@ -257,7 +270,7 @@ supplier-api.service.ts
 purchase-order-api.service.ts
 ```
 
-The services centralize HTTP calls and keep feature components independent from raw endpoint strings.
+The services centralize HTTP calls and keep feature components independent of raw endpoint strings.
 
 Typed request and response models live in:
 
@@ -562,15 +575,15 @@ frontend/nginx.conf
 Dockerfile behavior:
 
 1. Build stage:
-    - uses Node Alpine
-    - installs dependencies
-    - builds the Angular app
+   - uses Node Alpine
+   - installs dependencies
+   - builds the Angular app
 
 2. Runtime stage:
-    - uses nginx Alpine
-    - copies the Angular production build
-    - copies the nginx configuration
-    - serves the app on container port `80`
+   - uses nginx Alpine
+   - copies the Angular production build
+   - copies the nginx configuration
+   - serves the app on container port `80`
 
 Docker Compose exposes the frontend as:
 
@@ -582,13 +595,22 @@ Start the Dockerized frontend:
 
 ```bash
 cd frontend
-docker compose up -d
+docker compose up -d --build
 ```
+
+Run the Dockerized frontend smoke test:
+
+```bash
+npm run e2e:docker
+```
+
+This verifies the running nginx frontend container instead of the Angular development server.
+
+It is separate from the normal Playwright tests because it depends on Docker and a running backend.
 
 Stop the Dockerized frontend:
 
 ```bash
-cd frontend
 docker compose down
 ```
 
@@ -620,7 +642,7 @@ Run unit tests:
 npm test
 ```
 
-Test files are colocated with the source files they test.
+Test files are collocated with the source files they test.
 
 Examples:
 
@@ -705,6 +727,62 @@ This avoids collisions during repeated local test runs.
 
 ---
 
+## Dockerized frontend smoke test
+
+The frontend also includes a small Playwright smoke test for the real Dockerized frontend runtime.
+
+Run the Dockerized frontend smoke test:
+
+```bash
+npm run e2e:docker
+```
+
+This command uses:
+
+```text
+playwright.docker.config.ts
+```
+
+and runs tests from:
+
+```text
+e2e-docker/docker-smoke.spec.ts
+```
+
+The Docker smoke test assumes:
+
+- the backend is running on `http://localhost:8080`
+- the frontend container is running on `http://localhost:4200`
+- port `4200` is available for the Dockerized frontend
+
+Typical flow from the project root:
+
+```bash
+./scripts/demo/run-demo.sh
+./scripts/demo/seed-demo-data.sh
+
+cd frontend
+docker compose up -d --build
+npm run e2e:docker
+```
+
+The Docker smoke test checks that:
+
+- the Dockerized Angular frontend is reachable
+- nginx serves the Angular production build
+- Angular client-side routes work through nginx
+- `/api/` requests are proxied to the backend
+- the dashboard page loads
+- the suppliers page loads
+- the purchase orders page loads
+- pages do not produce unexpected API failures
+
+This test is intentionally separate from the normal Playwright end-to-end tests.
+
+The normal Playwright tests use the Angular development test setup. The Docker smoke test verifies the production-style nginx container runtime.
+
+---
+
 ## TypeScript strictness
 
 The frontend uses strict TypeScript settings.
@@ -713,12 +791,12 @@ Important settings include:
 
 ```json
 {
-  "strict": true,
-  "noImplicitOverride": true,
-  "noPropertyAccessFromIndexSignature": true,
-  "noImplicitReturns": true,
-  "noFallthroughCasesInSwitch": true,
-  "isolatedModules": true
+   "strict": true,
+   "noImplicitOverride": true,
+   "noPropertyAccessFromIndexSignature": true,
+   "noImplicitReturns": true,
+   "noFallthroughCasesInSwitch": true,
+   "isolatedModules": true
 }
 ```
 
@@ -726,10 +804,10 @@ Angular template strictness is also enabled:
 
 ```json
 {
-  "strictInjectionParameters": true,
-  "strictInputAccessModifiers": true,
-  "typeCheckHostBindings": true,
-  "strictTemplates": true
+   "strictInjectionParameters": true,
+   "strictInputAccessModifiers": true,
+   "typeCheckHostBindings": true,
+   "strictTemplates": true
 }
 ```
 
@@ -753,3 +831,5 @@ This frontend demonstrates practical Angular full-stack skills:
 - unit tests with Karma/Jasmine
 - e2e tests with Playwright
 - Dockerized nginx production runtime
+- Dockerized frontend runtime verification
+- Playwright smoke testing against the nginx-served production build

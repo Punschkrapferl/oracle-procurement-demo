@@ -22,7 +22,7 @@ The application supports:
 - optional demo seed data
 - backend unit, controller, integration, and SQL seed tests
 - Angular frontend with dashboard, suppliers, and purchase order screens
-- frontend unit and Playwright end-to-end tests
+- frontend unit tests, Playwright end-to-end tests, and Dockerized frontend smoke tests
 - separate demo and development runtime paths
 
 ---
@@ -190,13 +190,16 @@ oracle-procurement-demo
 ├─ frontend
 │  ├─ src
 │  ├─ e2e
+│  ├─ e2e-docker
 │  ├─ Dockerfile
 │  ├─ docker-compose.yml
 │  ├─ nginx.conf
 │  ├─ proxy.conf.json
 │  ├─ package.json
 │  ├─ angular.json
-│  └─ playwright.config.ts
+│  ├─ playwright.config.ts
+│  ├─ playwright.docker.config.ts
+│  └─ tsconfig.e2e.json
 ├─ scripts
 │  ├─ demo
 │  └─ dev
@@ -428,7 +431,7 @@ Start frontend container:
 
 ```bash
 cd frontend
-docker compose up -d
+docker compose up -d --build
 ```
 
 The Dockerized frontend runs on:
@@ -436,6 +439,20 @@ The Dockerized frontend runs on:
 ```text
 http://localhost:4200
 ```
+
+Run the Dockerized frontend smoke test:
+
+```bash
+npm run e2e:docker
+```
+
+This test checks that:
+
+- the Dockerized Angular frontend is reachable
+- nginx serves the Angular production build
+- Angular routes load correctly through nginx
+- `/api/` requests are proxied to the backend
+- the main frontend pages load without unexpected API failures
 
 Stop frontend container:
 
@@ -578,6 +595,15 @@ cd frontend
 npm run test:e2e
 ```
 
+Run the Dockerized frontend smoke test:
+
+```bash
+cd frontend
+npm run e2e:docker
+```
+
+The Dockerized smoke test assumes that the backend and frontend container are already running. It verifies the real nginx-served frontend runtime instead of the Angular dev server.
+
 ---
 
 ## Notes
@@ -591,6 +617,7 @@ npm run test:e2e
 - Demo and development paths are intentionally separated.
 - The frontend can run locally through the Angular dev server or as a Dockerized nginx build.
 - The frontend and backend are developed separately but work together as one full-stack application.
+- The Dockerized frontend smoke test verifies the real nginx frontend container against the running backend.
 
 ---
 
